@@ -56,7 +56,7 @@ git --version
 ```text
 bootstrap/
 ├── kind/
-│   ├── cluster.yaml
+│   ├── dev-cluster.yaml
 │   └── setup.sh
 │
 └── argocd/
