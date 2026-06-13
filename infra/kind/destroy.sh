@@ -8,17 +8,10 @@ usage() {
   cat <<EOF
 Usage: $(basename "$0") <cluster-name>
 
-Deletes a Kind cluster created from <cluster-name>-cluster.yaml in this directory.
-
-Available clusters:
-  dev
-  stg
-  prod
+Day 0 — deletes a Kind cluster (dev, stg, or prod).
 
 Examples:
   $(basename "$0") dev
-  $(basename "$0") stg
-  $(basename "$0") prod
 EOF
 }
 
@@ -35,10 +28,9 @@ if [[ ! -f "$CONFIG" ]]; then
 fi
 
 if ! kind get clusters 2>/dev/null | grep -qx "$CLUSTER"; then
-  echo "Cluster '$CLUSTER' is not running." >&2
+  echo "Cluster '$CLUSTER' is not running."
   exit 0
 fi
 
 kind delete cluster --name "$CLUSTER"
-
 echo "Cluster '$CLUSTER' deleted."

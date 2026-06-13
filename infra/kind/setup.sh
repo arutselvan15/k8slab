@@ -8,22 +8,17 @@ usage() {
   cat <<EOF
 Usage: $(basename "$0") <cluster-name>
 
-Creates a Kind cluster using <cluster-name>-cluster.yaml in this directory.
+Day 0 — creates a Kind cluster from <cluster-name>-cluster.yaml.
 Safe to re-run: skips creation if the cluster already exists.
 
-kubectl context will be kind-<cluster-name> (Kind adds the kind- prefix automatically).
+kubectl context: kind-<cluster-name>
 
-Available clusters:
-  dev   (context kind-dev;   ingress host ports 8080, 8443)
-  stg   (context kind-stg;   ingress host ports 9080, 9443)
-  prod  (context kind-prod; ingress host ports 80, 443)
+Profiles: dev, stg, prod
 
 Examples:
   $(basename "$0") dev
-  $(basename "$0") stg
-  $(basename "$0") prod
 
-Delete: ./destroy.sh <cluster-name>
+Teardown: ./destroy.sh <cluster-name>
 EOF
 }
 

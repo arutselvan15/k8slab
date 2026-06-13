@@ -9,7 +9,7 @@ usage() {
   cat <<EOF
 Usage: $(basename "$0") [kubectl-context]
 
-Installs or upgrades Argo CD with Helm. Safe to re-run.
+Day 1 — installs or upgrades Argo CD with Helm. Safe to re-run.
 
 If context is omitted, uses the current kubectl context.
 

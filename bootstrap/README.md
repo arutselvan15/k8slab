@@ -1,116 +1,65 @@
-# Bootstrap Guide
+# Day 1 — Bootstrap (GitOps controller)
 
-Create a local Kind cluster and install Argo CD. Run one cluster at a time on your Mac, or use separate profiles concurrently (unique host ports).
+Install the minimum software needed to manage the cluster from Git: **Argo CD**.
 
-Everything after bootstrap should be managed with GitOps through Argo CD.
+Platform components (ingress, certificates, monitoring, policies) belong in **Day 2** ([`../gitops/`](../gitops/)), not here.
 
----
-
-## Architecture
-
-```text
-bootstrap/bootstrap.sh <profile>
-        ↓
-Kind cluster (create if missing)
-        ↓
-Argo CD (helm upgrade --install)
-        ↓
-GitOps manages everything else
-```
-
----
-
-## Prerequisites
-
-```bash
-brew install kind kubectl helm git
-```
-
----
-
-## Directory structure
+## Layout
 
 ```text
 bootstrap/
-├── bootstrap.sh          # Kind + Argo CD (idempotent)
-├── kind/
-│   ├── dev-cluster.yaml
-│   ├── stg-cluster.yaml
-│   ├── prod-cluster.yaml
-│   ├── setup.sh
-│   └── destroy.sh
+├── bootstrap.sh       # entry: profile name → Argo CD on kind-<profile>
 └── argocd/
-    ├── install.sh
+    ├── install.sh     # Helm install (any kubectl context)
     └── values.yaml
 ```
 
----
+## Prerequisites
 
-## Bootstrap (recommended)
-
-From the repo root or `bootstrap/`:
-
-```bash
-chmod +x bootstrap/bootstrap.sh bootstrap/kind/*.sh bootstrap/argocd/install.sh
-./bootstrap/bootstrap.sh dev    # or stg | prod
-```
-
-Re-running the same command is safe: it skips Kind creation if the cluster exists and upgrades Argo CD via Helm.
-
-| Profile | Kind cluster name | kubectl context | Ingress (host HTTP / HTTPS) |
-|---------|-------------------|-----------------|-----------------------------|
-| dev     | dev               | kind-dev        | 8080 / 8443                 |
-| stg     | stg               | kind-stg        | 9080 / 9443                 |
-| prod    | prod              | kind-prod       | 80 / 443                    |
-
-Kind sets the kubeconfig context to `kind-<name>` — do not put `kind-` in the cluster name itself.
-
----
-
-## Manual steps (optional)
-
-Kind only:
+- Day 0 complete: cluster API reachable (`kubectl get nodes`)
+- `helm`, `kubectl`
 
 ```bash
-cd bootstrap/kind && ./setup.sh dev
+brew install kubectl helm
 ```
 
-Argo CD only (current context or explicit):
+## Run Day 1
+
+After [Kind Day 0](../infra/kind/setup.sh):
 
 ```bash
-cd bootstrap/argocd && ./install.sh kind-dev
+cd bootstrap
+chmod +x bootstrap.sh argocd/install.sh
+./bootstrap.sh dev
 ```
 
----
+Re-running upgrades Argo CD via `helm upgrade --install`.
 
 ## Argo CD access
 
-Initial admin password:
+Admin password:
 
 ```bash
 kubectl --context kind-dev get secret argocd-initial-admin-secret \
   -n argocd -o jsonpath='{.data.password}' | base64 --decode; echo
 ```
 
-Port-forward (e.g. port 8888 on **dev** to avoid clashing with ingress on 8080):
+UI (use a port that does not clash with ingress — e.g. **8888** on dev):
 
 ```bash
 kubectl --context kind-dev port-forward svc/argocd-server -n argocd 8888:80
 ```
 
-Open http://localhost:8888 (user `admin`).
+Open http://localhost:8888 — user `admin`.
 
----
+## Cloud clusters
 
-## Cleanup
+When Terraform replaces Kind, use the kube context from your cloud provider and run:
 
 ```bash
-./bootstrap/kind/destroy.sh dev    # or stg | prod
-kind get clusters
+./argocd/install.sh <your-context>
 ```
 
----
+## Next
 
-## Next step
-
-Add a GitOps layout and a root Application (App-of-Apps) so Argo CD syncs cluster add-ons from Git.
+Populate [`../gitops/`](../gitops/) (Day 2) and register a root Application from Git.
