@@ -45,7 +45,7 @@ Same as Kind — only Day 0 changes:
 ```bash
 # After terraform apply writes kubeconfig to KUBECONFIG_FILE
 source scripts/kubeconfig-setup.sh "$KUBECONFIG_FILE"
-./bootstrap/bootstrap.sh
+./bootstrap/bootstrap.sh prod
 ```
 
 Later, wrap those steps in `scripts/terraform-up.sh <profile>` mirroring [`../../scripts/kind-up.sh`](../../scripts/kind-up.sh).

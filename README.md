@@ -33,10 +33,10 @@ After the cluster exists, Day 1 is always the same two steps:
 
 ```text
 1. source scripts/kubeconfig-setup.sh <path-to-kubeconfig>
-2. ./bootstrap/bootstrap.sh
+2. ./bootstrap/bootstrap.sh <overlay>   # dev, stg, or prod
 ```
 
-`bootstrap.sh` takes no cluster name — it uses whatever cluster `KUBECONFIG` points at.
+`bootstrap.sh` uses `KUBECONFIG` for the cluster and **overlay** for Helm values only (see `bootstrap/argocd/versions.env` for pinned chart version).
 
 | Script | Role |
 |--------|------|
@@ -64,7 +64,7 @@ Or step by step (same order as `kind-up.sh`):
 ```bash
 ./infra/kind/setup.sh dev
 source scripts/kubeconfig-setup.sh .kube/kind-dev.yaml
-./bootstrap/bootstrap.sh
+./bootstrap/bootstrap.sh dev
 ```
 
 | Profile | Kind cluster name | Kubeconfig file (repo) | Ingress (host HTTP / HTTPS) |
@@ -93,7 +93,7 @@ Day 0 moves to [`infra/terraform/`](./infra/terraform/). After apply, write or e
 
 ```bash
 source scripts/kubeconfig-setup.sh /path/to/kubeconfig.yaml
-./bootstrap/bootstrap.sh
+./bootstrap/bootstrap.sh prod
 ```
 
 See [infra/terraform/README.md](./infra/terraform/README.md).

@@ -1,0 +1,5 @@
+# Local Kind / dev — HTTP, single replicas (see base.yaml).
+
+configs:
+  params:
+    server.insecure: true

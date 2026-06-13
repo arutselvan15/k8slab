@@ -63,5 +63,5 @@ Load kubeconfig, then [Day 1 bootstrap](../bootstrap/README.md):
 
 ```bash
 source scripts/kubeconfig-setup.sh .kube/kind-dev.yaml
-./bootstrap/bootstrap.sh
+./bootstrap/bootstrap.sh dev
 ```

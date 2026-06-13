@@ -1,0 +1,11 @@
+# Staging — still permissive for lab; tune before real stg clusters.
+
+configs:
+  params:
+    server.insecure: false
+
+controller:
+  replicas: 1
+
+repoServer:
+  replicas: 1

@@ -6,17 +6,19 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 usage() {
   cat <<EOF
-Usage: $(basename "$0")
+Usage: $(basename "$0") [overlay]
 
 Day 1 — installs or upgrades Argo CD on the cluster from the current shell.
 Safe to re-run.
 
+Overlay selects Helm values (dev, stg, prod). Default: dev or \$ARGOCD_OVERLAY.
+
 Run after kubeconfig is loaded, e.g.:
   source ../scripts/kubeconfig-setup.sh /path/to/kubeconfig.yaml
-  $(basename "$0")
+  $(basename "$0") dev
 
 Argo CD Helm only:
-  ./argocd/install.sh
+  ./argocd/install.sh dev
 EOF
 }
 
@@ -25,8 +27,10 @@ if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
   exit 0
 fi
 
-if [[ -n "${1:-}" ]]; then
-  echo "Unexpected argument: $1 (bootstrap does not take a profile or cluster name)" >&2
+OVERLAY="${ARGOCD_OVERLAY:-${1:-dev}}"
+
+if [[ -n "${2:-}" ]]; then
+  echo "Unexpected argument: $2" >&2
   usage >&2
   exit 1
 fi
@@ -43,8 +47,8 @@ require_tools() {
 
 require_tools
 
-echo "==> Day 1: Argo CD"
-"$SCRIPT_DIR/argocd/install.sh"
+echo "==> Day 1: Argo CD (overlay: $OVERLAY)"
+"$SCRIPT_DIR/argocd/install.sh" "$OVERLAY"
 
 echo ""
 echo "Day 1 complete."

@@ -45,7 +45,7 @@ Same steps manually (same order as `kind-up.sh`):
 ```bash
 ./infra/kind/setup.sh dev
 source scripts/kubeconfig-setup.sh .kube/kind-dev.yaml
-./bootstrap/bootstrap.sh
+./bootstrap/bootstrap.sh dev
 # Day 2: commit manifests under gitops/ and sync with Argo CD
 ```
 
@@ -65,7 +65,7 @@ Add a sibling script when Terraform is ready, e.g. `scripts/terraform-up.sh <pro
 1. terraform apply (infra/terraform/environments/<profile>)
 2. Write or reference kubeconfig path (Terraform output → file, e.g. .kube/<profile>.yaml)
 3. source scripts/kubeconfig-setup.sh <that-path>
-4. ./bootstrap/bootstrap.sh
+4. ./bootstrap/bootstrap.sh <overlay>
 ```
 
 `kind-up.sh` and `terraform-up.sh` are thin wrappers; shared pieces are `kubeconfig-setup.sh` and `bootstrap/`.

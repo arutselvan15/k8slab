@@ -1,9 +1,8 @@
+# Shared Argo CD Helm values (all environments).
+# Environment-specific settings: values/overlays/<profile>.yaml
+
 global:
   domain: argocd.local
-
-configs:
-  params:
-    server.insecure: true
 
 server:
   service:

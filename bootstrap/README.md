@@ -8,10 +8,16 @@ Platform components (ingress, certificates, monitoring, policies) belong in **Da
 
 ```text
 bootstrap/
-├── bootstrap.sh       # Day 1 entry (no arguments)
+├── bootstrap.sh       # Day 1 entry ([overlay] → dev|stg|prod)
 └── argocd/
-    ├── install.sh     # Helm install (called by bootstrap.sh)
-    └── values.yaml
+    ├── install.sh     # Helm install (pinned chart)
+    ├── versions.env   # ARGO_CD_CHART_VERSION
+    └── values/
+        ├── base.yaml
+        └── overlays/
+            ├── dev.yaml
+            ├── stg.yaml
+            └── prod.yaml
 ```
 
 ## Prerequisites
@@ -30,8 +36,12 @@ From the repo root (example: Kind dev):
 
 ```bash
 source scripts/kubeconfig-setup.sh .kube/kind-dev.yaml
-./bootstrap/bootstrap.sh
+./bootstrap/bootstrap.sh dev
 ```
+
+Overlays match profiles (`dev`, `stg`, `prod`). Chart version is pinned in `argocd/versions.env`.
+
+`prod` overlay sets `server.insecure: false` — use TLS/ingress (Day 2) or `dev` overlay on Kind until then.
 
 Or from `bootstrap/` after sourcing with a path relative to repo root:
 
@@ -39,10 +49,10 @@ Or from `bootstrap/` after sourcing with a path relative to repo root:
 cd bootstrap
 chmod +x bootstrap.sh argocd/install.sh
 source ../scripts/kubeconfig-setup.sh ../.kube/kind-dev.yaml
-./bootstrap.sh
+./bootstrap.sh dev
 ```
 
-`bootstrap.sh` does not take a profile or cluster name — the target cluster comes only from `KUBECONFIG`.
+The **overlay** (`dev`, `stg`, `prod`) selects Helm values only. The target cluster comes from `KUBECONFIG`. Default overlay is `dev` if omitted (`ARGOCD_OVERLAY` env also supported).
 
 Re-running upgrades Argo CD via `helm upgrade --install`.
 
@@ -75,13 +85,13 @@ When Terraform replaces Kind, Day 0 produces a kubeconfig file. Same Day 1 flow:
 
 ```bash
 source scripts/kubeconfig-setup.sh /path/from/terraform/kubeconfig.yaml
-./bootstrap/bootstrap.sh
+./bootstrap/bootstrap.sh prod
 ```
 
 Helm only (same cluster as current `KUBECONFIG`):
 
 ```bash
-./bootstrap/argocd/install.sh
+./bootstrap/argocd/install.sh dev
 ```
 
 ## Next

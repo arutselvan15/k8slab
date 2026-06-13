@@ -35,7 +35,7 @@ KUBECONFIG_FILE="${REPO_ROOT}/.kube/kind-${CLUSTER}.yaml"
 source "$REPO_ROOT/scripts/kubeconfig-setup.sh" "$KUBECONFIG_FILE"
 
 echo "==> Day 1: bootstrap"
-"$REPO_ROOT/bootstrap/bootstrap.sh"
+"$REPO_ROOT/bootstrap/bootstrap.sh" "$CLUSTER"
 
 echo ""
 echo "Kind platform up for '$CLUSTER'. See docs/platform-lifecycle.md."
