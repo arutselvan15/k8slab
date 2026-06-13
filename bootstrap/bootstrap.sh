@@ -11,14 +11,8 @@ Usage: $(basename "$0") [overlay]
 Day 1 — installs or upgrades Argo CD on the cluster from the current shell.
 Safe to re-run.
 
-Overlay selects Helm values (dev, stg, prod). Default: dev or \$ARGOCD_OVERLAY.
-
-Run after kubeconfig is loaded, e.g.:
-  source ../scripts/kubeconfig-setup.sh /path/to/kubeconfig.yaml
-  $(basename "$0") dev
-
-Argo CD Helm only:
-  ./argocd/install.sh dev
+Overlay: dev, stg, prod (optional; default from bootstrap/env or dev).
+Environment is loaded in argocd/install.sh (bootstrap/env/).
 EOF
 }
 
@@ -27,28 +21,14 @@ if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
   exit 0
 fi
 
-OVERLAY="${ARGOCD_OVERLAY:-${1:-dev}}"
-
 if [[ -n "${2:-}" ]]; then
   echo "Unexpected argument: $2" >&2
   usage >&2
   exit 1
 fi
 
-require_tools() {
-  local tool
-  for tool in kubectl helm; do
-    if ! command -v "$tool" >/dev/null 2>&1; then
-      echo "Required tool not found: $tool" >&2
-      exit 1
-    fi
-  done
-}
-
-require_tools
-
-echo "==> Day 1: Argo CD (overlay: $OVERLAY)"
-"$SCRIPT_DIR/argocd/install.sh" "$OVERLAY"
+echo "==> Day 1: Argo CD"
+"$SCRIPT_DIR/argocd/install.sh" "${1:-}"
 
 echo ""
 echo "Day 1 complete."

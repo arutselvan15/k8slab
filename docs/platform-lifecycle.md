@@ -7,7 +7,7 @@ Reference model for Kubernetes platform engineering. Same layout applies to a ho
 ```text
 Day 0  infra/          Cluster exists (API reachable)
          ↓
-Day 1  bootstrap/      GitOps controller (Argo CD)
+Day 1  bootstrap/      GitOps controller (Argo CD) + repo Secrets
          ↓
 Day 2  gitops/          Everything else from Git
 ```
@@ -15,13 +15,13 @@ Day 2  gitops/          Everything else from Git
 | Phase | Question answered | Tools in this repo |
 |-------|-------------------|-------------------|
 | **Day 0** | Do we have a cluster? | `infra/terraform/` (placeholder), `infra/kind/` (local) |
-| **Day 1** | Can we manage the cluster via Git? | `bootstrap/argocd/` |
+| **Day 1** | Can we manage the cluster via Git? | `bootstrap/bootstrap.sh` → `bootstrap/argocd/install.sh` |
 | **Day 2** | What runs on the cluster? | `gitops/` (App of Apps + platform apps) |
 
 ## What does not belong where
 
 - **Day 0:** VPC, cluster, node pools — not Argo CD, not ingress.
-- **Day 1:** Argo CD (and optionally a single root `Application` manifest later) — not cert-manager or app stacks.
+- **Day 1:** Argo CD Helm install, Argo CD repo / repo-creds Secrets — not cert-manager or app stacks.
 - **Day 2:** Ingress, cert-manager, monitoring, policies, team apps — not `kind create` or cluster Terraform.
 
 ## Environment names
@@ -29,8 +29,11 @@ Day 2  gitops/          Everything else from Git
 Use **dev**, **stg**, and **prod** consistently:
 
 - Kind configs: `infra/kind/<profile>-cluster.yaml`
-- Kubeconfig file: path from Day 0 (e.g. `.kube/kind-<profile>.yaml` from Kind); load with `source scripts/kubeconfig-setup.sh <path>`
-- Future GitOps: `gitops/clusters/<profile>/`
+- Kubeconfig: `.kube/kind-<profile>.yaml` (Kind); `source scripts/kubeconfig-setup.sh <path>`
+- Argo CD Helm overlay: same profile name passed to `bootstrap.sh` / `install.sh`
+- GitOps: `gitops/clusters/<profile>/`
+
+Bootstrap pins and secrets: `bootstrap/env/defaults.env` + gitignored `bootstrap.env` (loaded in `install.sh` only).
 
 ## Local workflow (macOS)
 
@@ -40,9 +43,12 @@ Kind one-shot (Day 0 + kubeconfig + Day 1):
 ./scripts/kind-up.sh dev
 ```
 
-Same steps manually (same order as `kind-up.sh`):
+`kind-up.sh` runs `require-tools.sh kubectl helm envsubst`, then Kind setup, kubeconfig, and `bootstrap.sh`.
+
+Manual (same order):
 
 ```bash
+./scripts/require-tools.sh kubectl helm envsubst
 ./infra/kind/setup.sh dev
 source scripts/kubeconfig-setup.sh .kube/kind-dev.yaml
 ./bootstrap/bootstrap.sh dev
@@ -60,13 +66,11 @@ Teardown Day 0 only:
 
 Day 0 backend differs; **kubeconfig setup + bootstrap stay the same**.
 
-Add a sibling script when Terraform is ready, e.g. `scripts/terraform-up.sh <profile>`:
-
 ```text
 1. terraform apply (infra/terraform/environments/<profile>)
-2. Write or reference kubeconfig path (Terraform output → file, e.g. .kube/<profile>.yaml)
+2. kubeconfig path (e.g. .kube/<profile>.yaml)
 3. source scripts/kubeconfig-setup.sh <that-path>
 4. ./bootstrap/bootstrap.sh <overlay>
 ```
 
-`kind-up.sh` and `terraform-up.sh` are thin wrappers; shared pieces are `kubeconfig-setup.sh` and `bootstrap/`.
+Shared scripts: `kubeconfig-setup.sh`, `require-tools.sh`, `bootstrap/`.

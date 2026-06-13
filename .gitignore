@@ -1,1 +1,2 @@
 .kube/
+bootstrap/env/bootstrap.env

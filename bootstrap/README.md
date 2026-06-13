@@ -1,99 +1,67 @@
 # Day 1 — Bootstrap (GitOps controller)
 
-Install the minimum software needed to manage the cluster from Git: **Argo CD**.
+Install **Argo CD** with Helm, then apply Argo CD **repo-creds** and **repository** Secrets from `argocd/repos/`.
 
-Platform components (ingress, certificates, monitoring, policies) belong in **Day 2** ([`../gitops/`](../gitops/)), not here.
+Platform workloads are **Day 2** ([`../gitops/`](../gitops/)).
 
-## Layout
+## How it runs
 
 ```text
-bootstrap/
-├── bootstrap.sh       # Day 1 entry ([overlay] → dev|stg|prod)
-└── argocd/
-    ├── install.sh     # Helm install (pinned chart)
-    ├── versions.env   # ARGO_CD_CHART_VERSION
-    └── values/
-        ├── base.yaml
-        └── overlays/
-            ├── dev.yaml
-            ├── stg.yaml
-            └── prod.yaml
+bootstrap/bootstrap.sh [overlay]
+        │
+        └── argocd/install.sh [overlay]
+                  ├── load bootstrap/env/ (defaults.env + bootstrap.env)
+                  ├── Helm: argo-cd chart (pin in defaults.env)
+                  ├── apply repo-creds.*.yaml  (envsubst if ${VAR} present)
+                  └── apply repo.*.yaml
 ```
 
-## Prerequisites
+- **`bootstrap.sh`** — thin wrapper; does **not** load env (overlay optional, forwarded to `install.sh`).
+- **`argocd/install.sh`** — Day 1 implementation; **only** place that sources `env/load.sh`.
 
-- Day 0 complete; kubeconfig file exists
-- `KUBECONFIG` set in your shell via [`../scripts/kubeconfig-setup.sh`](../scripts/kubeconfig-setup.sh)
-- `helm`, `kubectl`
+Prerequisites on `PATH` for local one-shot: [`../scripts/require-tools.sh`](../scripts/require-tools.sh) (`kubectl`, `helm`, `envsubst`) — called from [`../scripts/kind-up.sh`](../scripts/kind-up.sh). Run Day 1 directly only after those tools are installed.
+
+## Configuration
+
+```text
+bootstrap/env/
+├── defaults.env           # committed — ARGO_CD_CHART_VERSION, ARGOCD_OVERLAY, GIT_REPO_URL
+├── bootstrap.env.example  # template
+├── bootstrap.env          # gitignored — secrets and overrides
+└── load.sh                # sourced by argocd/install.sh only
+```
 
 ```bash
-brew install kubectl helm
+cp bootstrap/env/bootstrap.env.example bootstrap/env/bootstrap.env
+# optional: GITHUB_PAT, GITHUB_SSH_PRIVATE_KEY_B64 for private GitHub
+```
+
+Details: [`env/README.md`](env/README.md). Repo manifests: [`argocd/repos/README.md`](argocd/repos/README.md).
+
+Kubeconfig (cluster targeting) is separate:
+
+```bash
+source scripts/kubeconfig-setup.sh .kube/kind-dev.yaml
 ```
 
 ## Run Day 1
 
-From the repo root (example: Kind dev):
-
 ```bash
 source scripts/kubeconfig-setup.sh .kube/kind-dev.yaml
-./bootstrap/bootstrap.sh dev
+./bootstrap/bootstrap.sh dev          # or omit overlay → ARGOCD_OVERLAY / dev
+# equivalent: ./bootstrap/argocd/install.sh dev
 ```
 
-Overlays match profiles (`dev`, `stg`, `prod`). Chart version is pinned in `argocd/versions.env`.
+Keep `GIT_REPO_URL` in `defaults.env` and `repo.k8s-platform.yaml` aligned with `gitops/clusters/…` Application `repoURL` values.
 
-`prod` overlay sets `server.insecure: false` — use TLS/ingress (Day 2) or `dev` overlay on Kind until then.
-
-Or from `bootstrap/` after sourcing with a path relative to repo root:
-
-```bash
-cd bootstrap
-chmod +x bootstrap.sh argocd/install.sh
-source ../scripts/kubeconfig-setup.sh ../.kube/kind-dev.yaml
-./bootstrap.sh dev
-```
-
-The **overlay** (`dev`, `stg`, `prod`) selects Helm values only. The target cluster comes from `KUBECONFIG`. Default overlay is `dev` if omitted (`ARGOCD_OVERLAY` env also supported).
-
-Re-running upgrades Argo CD via `helm upgrade --install`.
-
-## Argo CD access
-
-Use the same shell where you sourced `kubeconfig-setup.sh`, or source the kubeconfig path again:
-
-```bash
-source scripts/kubeconfig-setup.sh .kube/kind-dev.yaml
-```
-
-Admin password:
-
-```bash
-kubectl get secret argocd-initial-admin-secret \
-  -n argocd -o jsonpath='{.data.password}' | base64 --decode; echo
-```
-
-UI (use a port that does not clash with ingress — e.g. **8888** on dev):
+## Argo CD UI
 
 ```bash
 kubectl port-forward svc/argocd-server -n argocd 8888:80
 ```
 
-Open http://localhost:8888 — user `admin`.
-
-## Cloud clusters
-
-When Terraform replaces Kind, Day 0 produces a kubeconfig file. Same Day 1 flow:
-
-```bash
-source scripts/kubeconfig-setup.sh /path/from/terraform/kubeconfig.yaml
-./bootstrap/bootstrap.sh prod
-```
-
-Helm only (same cluster as current `KUBECONFIG`):
-
-```bash
-./bootstrap/argocd/install.sh dev
-```
+Password: `kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath='{.data.password}' | base64 --decode; echo`
 
 ## Next
 
-Populate [`../gitops/`](../gitops/) (Day 2) and register a root Application from Git.
+[`../gitops/README.md`](../gitops/README.md) — push Git, apply `core.application.yaml`.

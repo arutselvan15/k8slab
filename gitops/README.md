@@ -64,16 +64,10 @@ Later: **`cert-manager.application.yaml`** under `core/applications/`, values un
 
 ## Prerequisites
 
-1. **Day 1 done** — Argo CD running; Git repo URL registered in bootstrap ([`../bootstrap/argocd/gitops-repo.env`](../bootstrap/argocd/gitops-repo.env)).
-2. **`KUBECONFIG`** set ([`../scripts/kubeconfig-setup.sh`](../scripts/kubeconfig-setup.sh)).
-3. **Git remote** — push this repo to the same URL used in manifests (Argo clones GitHub, not your Mac disk).
-
-Private repo at bootstrap:
-
-```bash
-export GITOPS_REPO_PASSWORD='ghp_...'
-./bootstrap/bootstrap.sh dev
-```
+1. **Day 1 done** — Argo CD running (`./bootstrap/bootstrap.sh` or `./scripts/kind-up.sh`).
+2. **Git repo registered** — `argocd/install.sh` applies `repo.*.yaml` and `repo-creds.*.yaml` (placeholders from [`../bootstrap/env/bootstrap.env`](../bootstrap/env/bootstrap.env) via envsubst).
+3. **`KUBECONFIG`** set ([`../scripts/kubeconfig-setup.sh`](../scripts/kubeconfig-setup.sh)).
+4. **Push to Git** — same URLs as in Application manifests (Argo clones remote, not your laptop tree).
 
 ---
 
@@ -81,13 +75,13 @@ export GITOPS_REPO_PASSWORD='ghp_...'
 
 ### 1. Align Git URLs
 
-Set [`../bootstrap/argocd/gitops-repo.env`](../bootstrap/argocd/gitops-repo.env) and match **`repoURL`** in:
+Match **`repoURL`** in:
 
 - `gitops/clusters/dev/core.application.yaml`
 - Each platform Application’s `ref: values` source
 - `core.appproject.yaml` → `sourceRepos`
 
-Re-run bootstrap if you change the URL there.
+Edit `bootstrap/argocd/repos/repo.k8s-platform.yaml` and `env/defaults.env` (`GIT_REPO_URL`) if needed.
 
 ### 2. Push Git
 
@@ -146,8 +140,8 @@ Chart version: set Helm **`targetRevision`** on each platform Application (ingre
 | Phase | Installed by |
 |--------|----------------|
 | Cluster (Day 0) | Kind / Terraform |
-| Argo CD (Day 1) | `bootstrap/bootstrap.sh` |
-| Git repo registration | bootstrap `install.sh` |
+| Argo CD (Day 1) | `bootstrap.sh` → `argocd/install.sh` (Helm + repos) |
+| Git repo + GitHub creds | [`bootstrap/argocd/repos/`](../bootstrap/argocd/repos/) + [`bootstrap/env/`](../bootstrap/env/) |
 | Seed **`core-apps`** | `kubectl apply -f core.application.yaml` (once per env) |
 
 ---

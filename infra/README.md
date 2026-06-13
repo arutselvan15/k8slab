@@ -52,10 +52,11 @@ Also removes `.kube/kind-dev.yaml`.
 ## Prerequisites
 
 ```bash
-brew install kind kubectl
+brew install kind kubectl helm gettext   # envsubst from gettext
+brew link --force gettext                 # if envsubst not on PATH
 ```
 
-For Day 1 you also need Helm — see [`../bootstrap/README.md`](../bootstrap/README.md).
+Or run [`../scripts/require-tools.sh`](../scripts/require-tools.sh) before Day 1 — `kind-up.sh` checks `kubectl helm envsubst` automatically.
 
 ## Next
 

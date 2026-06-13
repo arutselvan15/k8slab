@@ -26,6 +26,8 @@ if [[ -z "$CLUSTER" ]]; then
   exit 1
 fi
 
+"$REPO_ROOT/scripts/require-tools.sh" kubectl helm envsubst
+
 echo "==> Day 0: Kind cluster"
 "$REPO_ROOT/infra/kind/setup.sh" "$CLUSTER"
 

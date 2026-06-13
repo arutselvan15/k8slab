@@ -1,4 +1,4 @@
-# Keep sourceRepos in sync with bootstrap/argocd/gitops-repo.env and Application repoURLs.
+# Keep sourceRepos in sync with Application repoURLs in gitops/clusters/.
 
 apiVersion: argoproj.io/v1alpha1
 kind: AppProject
