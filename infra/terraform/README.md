@@ -36,6 +36,18 @@ Wire each environment to the same profile names (`dev`, `stg`, `prod`) used in K
 Terraform should expose at minimum:
 
 - `cluster_name`
-- `kubeconfig` or instructions for CI to authenticate
+- A **kubeconfig file path** or raw kubeconfig written to disk in CI (e.g. `.kube/<profile>.yaml`)
 
-Day 1 bootstrap then targets that cluster context the same way `bootstrap/bootstrap.sh` uses `kind-<profile>` today.
+## Day 1 after apply
+
+Same as Kind — only Day 0 changes:
+
+```bash
+# After terraform apply writes kubeconfig to KUBECONFIG_FILE
+source scripts/kubeconfig-setup.sh "$KUBECONFIG_FILE"
+./bootstrap/bootstrap.sh
+```
+
+Later, wrap those steps in `scripts/terraform-up.sh <profile>` mirroring [`../../scripts/kind-up.sh`](../../scripts/kind-up.sh).
+
+Kind is a **local substitute** for this directory in Day 0, not a different lifecycle.

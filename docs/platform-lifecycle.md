@@ -29,22 +29,23 @@ Day 2  gitops/          Everything else from Git
 Use **dev**, **stg**, and **prod** consistently:
 
 - Kind configs: `infra/kind/<profile>-cluster.yaml`
-- kubectl context (Kind): `kind-<profile>`
+- Kubeconfig file: path from Day 0 (e.g. `.kube/kind-<profile>.yaml` from Kind); load with `source scripts/kubeconfig-setup.sh <path>`
 - Future GitOps: `gitops/clusters/<profile>/`
 
 ## Local workflow (macOS)
 
-One-shot (learning convenience):
+Kind one-shot (Day 0 + kubeconfig + Day 1):
 
 ```bash
-./scripts/local-up.sh dev
+./scripts/kind-up.sh dev
 ```
 
-Explicit phases:
+Same steps manually (same order as `kind-up.sh`):
 
 ```bash
 ./infra/kind/setup.sh dev
-./bootstrap/bootstrap.sh dev
+source scripts/kubeconfig-setup.sh .kube/kind-dev.yaml
+./bootstrap/bootstrap.sh
 # Day 2: commit manifests under gitops/ and sync with Argo CD
 ```
 
@@ -54,10 +55,17 @@ Teardown Day 0 only:
 ./infra/kind/destroy.sh dev
 ```
 
-## Enterprise workflow
+## Cloud workflow (Terraform)
 
-1. CI/CD or platform team applies `infra/terraform/environments/<profile>`.
-2. Pipeline or break-glass script runs `bootstrap/argocd/install.sh` with the cloud kube context.
-3. Platform team merges to `gitops/`; Argo CD reconciles Day 2.
+Day 0 backend differs; **kubeconfig setup + bootstrap stay the same**.
 
-Kind is a **local substitute** for Terraform in Day 0, not a different lifecycle.
+Add a sibling script when Terraform is ready, e.g. `scripts/terraform-up.sh <profile>`:
+
+```text
+1. terraform apply (infra/terraform/environments/<profile>)
+2. Write or reference kubeconfig path (Terraform output → file, e.g. .kube/<profile>.yaml)
+3. source scripts/kubeconfig-setup.sh <that-path>
+4. ./bootstrap/bootstrap.sh
+```
+
+`kind-up.sh` and `terraform-up.sh` are thin wrappers; shared pieces are `kubeconfig-setup.sh` and `bootstrap/`.

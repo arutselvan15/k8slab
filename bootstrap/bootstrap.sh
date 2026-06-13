@@ -6,22 +6,30 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 usage() {
   cat <<EOF
-Usage: $(basename "$0") <cluster-name>
+Usage: $(basename "$0")
 
-Day 1 — installs or upgrades Argo CD on an existing cluster.
+Day 1 — installs or upgrades Argo CD on the cluster from the current shell.
 Safe to re-run.
 
-Expects kubectl context kind-<cluster-name> (from Kind Day 0 or cloud kubeconfig).
+Run after kubeconfig is loaded, e.g.:
+  source ../scripts/kubeconfig-setup.sh /path/to/kubeconfig.yaml
+  $(basename "$0")
 
-Profiles: dev, stg, prod
-
-Examples:
-  $(basename "$0") dev
-
-Argo CD only (manual):
-  ./argocd/install.sh kind-dev
+Argo CD Helm only:
+  ./argocd/install.sh
 EOF
 }
+
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+  usage
+  exit 0
+fi
+
+if [[ -n "${1:-}" ]]; then
+  echo "Unexpected argument: $1 (bootstrap does not take a profile or cluster name)" >&2
+  usage >&2
+  exit 1
+fi
 
 require_tools() {
   local tool
@@ -33,28 +41,13 @@ require_tools() {
   done
 }
 
-CLUSTER="${1:-}"
-if [[ -z "$CLUSTER" ]]; then
-  usage
-  exit 1
-fi
-
 require_tools
 
-KUBE_CONTEXT="kind-${CLUSTER}"
-
-if ! kubectl config get-contexts -o name 2>/dev/null | grep -qx "$KUBE_CONTEXT"; then
-  echo "Context '$KUBE_CONTEXT' not found. Complete Day 0 first (infra/kind/setup.sh or Terraform)." >&2
-  exit 1
-fi
-
-kubectl config use-context "$KUBE_CONTEXT" >/dev/null
-
-echo "==> Day 1: Argo CD on $KUBE_CONTEXT"
-"$SCRIPT_DIR/argocd/install.sh" "$KUBE_CONTEXT"
+echo "==> Day 1: Argo CD"
+"$SCRIPT_DIR/argocd/install.sh"
 
 echo ""
-echo "Day 1 complete for profile '$CLUSTER'."
-echo "  kubectl --context $KUBE_CONTEXT get pods -n argocd"
-echo "  kubectl --context $KUBE_CONTEXT port-forward svc/argocd-server -n argocd 8888:80"
+echo "Day 1 complete."
+echo "  kubectl get pods -n argocd"
+echo "  kubectl port-forward svc/argocd-server -n argocd 8888:80"
 echo "Day 2: add manifests under gitops/ when ready."

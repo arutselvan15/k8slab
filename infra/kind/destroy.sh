@@ -33,4 +33,11 @@ if ! kind get clusters 2>/dev/null | grep -qx "$CLUSTER"; then
 fi
 
 kind delete cluster --name "$CLUSTER"
+
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+KUBECONFIG_FILE="${REPO_ROOT}/.kube/kind-${CLUSTER}.yaml"
+if [[ -f "$KUBECONFIG_FILE" ]]; then
+  rm -f "$KUBECONFIG_FILE"
+fi
+
 echo "Cluster '$CLUSTER' deleted."

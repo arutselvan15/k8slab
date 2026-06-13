@@ -8,15 +8,16 @@ Platform components (ingress, certificates, monitoring, policies) belong in **Da
 
 ```text
 bootstrap/
-├── bootstrap.sh       # entry: profile name → Argo CD on kind-<profile>
+├── bootstrap.sh       # Day 1 entry (no arguments)
 └── argocd/
-    ├── install.sh     # Helm install (any kubectl context)
+    ├── install.sh     # Helm install (called by bootstrap.sh)
     └── values.yaml
 ```
 
 ## Prerequisites
 
-- Day 0 complete: cluster API reachable (`kubectl get nodes`)
+- Day 0 complete; kubeconfig file exists
+- `KUBECONFIG` set in your shell via [`../scripts/kubeconfig-setup.sh`](../scripts/kubeconfig-setup.sh)
 - `helm`, `kubectl`
 
 ```bash
@@ -25,39 +26,62 @@ brew install kubectl helm
 
 ## Run Day 1
 
-After [Kind Day 0](../infra/kind/setup.sh):
+From the repo root (example: Kind dev):
+
+```bash
+source scripts/kubeconfig-setup.sh .kube/kind-dev.yaml
+./bootstrap/bootstrap.sh
+```
+
+Or from `bootstrap/` after sourcing with a path relative to repo root:
 
 ```bash
 cd bootstrap
 chmod +x bootstrap.sh argocd/install.sh
-./bootstrap.sh dev
+source ../scripts/kubeconfig-setup.sh ../.kube/kind-dev.yaml
+./bootstrap.sh
 ```
+
+`bootstrap.sh` does not take a profile or cluster name — the target cluster comes only from `KUBECONFIG`.
 
 Re-running upgrades Argo CD via `helm upgrade --install`.
 
 ## Argo CD access
 
+Use the same shell where you sourced `kubeconfig-setup.sh`, or source the kubeconfig path again:
+
+```bash
+source scripts/kubeconfig-setup.sh .kube/kind-dev.yaml
+```
+
 Admin password:
 
 ```bash
-kubectl --context kind-dev get secret argocd-initial-admin-secret \
+kubectl get secret argocd-initial-admin-secret \
   -n argocd -o jsonpath='{.data.password}' | base64 --decode; echo
 ```
 
 UI (use a port that does not clash with ingress — e.g. **8888** on dev):
 
 ```bash
-kubectl --context kind-dev port-forward svc/argocd-server -n argocd 8888:80
+kubectl port-forward svc/argocd-server -n argocd 8888:80
 ```
 
 Open http://localhost:8888 — user `admin`.
 
 ## Cloud clusters
 
-When Terraform replaces Kind, use the kube context from your cloud provider and run:
+When Terraform replaces Kind, Day 0 produces a kubeconfig file. Same Day 1 flow:
 
 ```bash
-./argocd/install.sh <your-context>
+source scripts/kubeconfig-setup.sh /path/from/terraform/kubeconfig.yaml
+./bootstrap/bootstrap.sh
+```
+
+Helm only (same cluster as current `KUBECONFIG`):
+
+```bash
+./bootstrap/argocd/install.sh
 ```
 
 ## Next

@@ -8,7 +8,7 @@ usage() {
   cat <<EOF
 Usage: $(basename "$0") <cluster-name>
 
-Runs Day 0 (Kind) then Day 1 (Argo CD) for local learning.
+Day 0 (Kind) + kubeconfig + Day 1 (Argo CD) for local learning.
 Safe to re-run.
 
 Profiles: dev, stg, prod
@@ -26,11 +26,16 @@ if [[ -z "$CLUSTER" ]]; then
   exit 1
 fi
 
-echo "==> Day 0: cluster"
+echo "==> Day 0: Kind cluster"
 "$REPO_ROOT/infra/kind/setup.sh" "$CLUSTER"
 
+echo "==> Kubeconfig"
+KUBECONFIG_FILE="${REPO_ROOT}/.kube/kind-${CLUSTER}.yaml"
+# shellcheck source=scripts/kubeconfig-setup.sh
+source "$REPO_ROOT/scripts/kubeconfig-setup.sh" "$KUBECONFIG_FILE"
+
 echo "==> Day 1: bootstrap"
-"$REPO_ROOT/bootstrap/bootstrap.sh" "$CLUSTER"
+"$REPO_ROOT/bootstrap/bootstrap.sh"
 
 echo ""
-echo "Local platform up for '$CLUSTER'. See docs/platform-lifecycle.md."
+echo "Kind platform up for '$CLUSTER'. See docs/platform-lifecycle.md."

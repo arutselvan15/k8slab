@@ -13,13 +13,13 @@ Provision a Kubernetes cluster. Nothing in this layer installs platform applicat
 
 Use the same environment names everywhere: **dev**, **stg**, **prod**.
 
-| Profile | Kind cluster | kubectl context | Ingress (host HTTP / HTTPS) |
-|---------|--------------|-----------------|-----------------------------|
-| dev     | dev          | kind-dev        | 8080 / 8443                 |
-| stg     | stg          | kind-stg        | 9080 / 9443                 |
-| prod    | prod         | kind-prod       | 80 / 443                    |
+| Profile | Kind cluster name | Kubeconfig file (repo) | Ingress (host HTTP / HTTPS) |
+|---------|-------------------|------------------------|-----------------------------|
+| dev     | `dev`             | `.kube/kind-dev.yaml`  | 8080 / 8443                 |
+| stg     | `stg`             | `.kube/kind-stg.yaml`  | 9080 / 9443                 |
+| prod    | `prod`            | `.kube/kind-prod.yaml` | 80 / 443                    |
 
-Kind sets context to `kind-<name>`. Do not name the cluster `kind-dev` or the context becomes `kind-kind-dev`.
+After `./setup.sh <profile>`, the kubeconfig is at `.kube/kind-<profile>.yaml` (from `kind get kubeconfig`). Do not name the Kind cluster `kind-dev` or the context inside the file becomes `kind-kind-dev`.
 
 ## Kind — create cluster
 
@@ -27,16 +27,27 @@ Kind sets context to `kind-<name>`. Do not name the cluster `kind-dev` or the co
 cd infra/kind
 chmod +x setup.sh destroy.sh
 ./setup.sh dev
-kubectl --context kind-dev get nodes
 ```
 
-Re-running `./setup.sh dev` is safe if the cluster already exists.
+Re-running `./setup.sh dev` is safe if the cluster already exists; it refreshes the kubeconfig file.
+
+## Kind — kubeconfig + verify
+
+From the repo root (after `setup.sh`):
+
+```bash
+source scripts/kubeconfig-setup.sh .kube/kind-dev.yaml
+```
+
+Or use the one-shot wrapper: [`../../scripts/kind-up.sh`](../../scripts/kind-up.sh).
 
 ## Kind — destroy cluster
 
 ```bash
 ./destroy.sh dev
 ```
+
+Also removes `.kube/kind-dev.yaml`.
 
 ## Prerequisites
 
@@ -48,4 +59,9 @@ For Day 1 you also need Helm — see [`../bootstrap/README.md`](../bootstrap/REA
 
 ## Next
 
-After Day 0, run [Day 1 bootstrap](../bootstrap/README.md) to install Argo CD.
+Load kubeconfig, then [Day 1 bootstrap](../bootstrap/README.md):
+
+```bash
+source scripts/kubeconfig-setup.sh .kube/kind-dev.yaml
+./bootstrap/bootstrap.sh
+```

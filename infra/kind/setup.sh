@@ -3,6 +3,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
 usage() {
   cat <<EOF
@@ -11,7 +12,7 @@ Usage: $(basename "$0") <cluster-name>
 Day 0 — creates a Kind cluster from <cluster-name>-cluster.yaml.
 Safe to re-run: skips creation if the cluster already exists.
 
-kubectl context: kind-<cluster-name>
+Writes kubeconfig to .kube/kind-<cluster-name>.yaml in the repo root.
 
 Profiles: dev, stg, prod
 
@@ -41,4 +42,10 @@ else
   echo "Created Kind cluster '$CLUSTER'."
 fi
 
-echo "kubectl context: kind-${CLUSTER}"
+KUBE_DIR="${REPO_ROOT}/.kube"
+KUBECONFIG_FILE="${KUBE_DIR}/kind-${CLUSTER}.yaml"
+mkdir -p "$KUBE_DIR"
+kind get kubeconfig --name "$CLUSTER" >"$KUBECONFIG_FILE"
+chmod 600 "$KUBECONFIG_FILE"
+
+echo "Kubeconfig: $KUBECONFIG_FILE"
