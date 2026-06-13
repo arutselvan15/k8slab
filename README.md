@@ -123,7 +123,7 @@ More detail: [bootstrap/README.md](./bootstrap/README.md).
 
 - [Day 0 — Infrastructure](./infra/README.md)
 - [Day 1 — Bootstrap (Argo CD)](./bootstrap/README.md)
-- [Day 2 — GitOps](./gitops/README.md) (placeholder)
+- [Day 2 — GitOps](./gitops/README.md) (ingress-nginx)
 - [Platform lifecycle](./docs/platform-lifecycle.md)
 
 ---
@@ -134,7 +134,7 @@ More detail: [bootstrap/README.md](./bootstrap/README.md).
 Day 0: cluster API + kubeconfig file
        → source kubeconfig-setup.sh <path>
 Day 1: Argo CD (bootstrap.sh)
-Day 2: everything else from Git (gitops/)
+Day 2: everything else from Git (gitops/) — start with ingress-nginx
 ```
 
 You can rename this repository when publishing; the folder model stays the same.

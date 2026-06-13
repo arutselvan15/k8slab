@@ -1,28 +1,59 @@
 # Day 2 — GitOps
 
-**Reserved.** Platform and application workloads will be declared here and synced by Argo CD.
+Platform and application workloads are declared here and synced by **Argo CD** (Day 1).
 
-Nothing in Day 2 is installed by shell scripts or Terraform after bootstrap is complete.
+Nothing in Day 2 is installed by shell scripts after bootstrap, except optionally **registering the first Application** (below).
 
-## Planned layout
+## Layout
 
 ```text
 gitops/
-├── apps/                 # shared bases (Helm/Kustomize wrappers)
+├── apps/
+│   └── ingress-nginx/          # Helm values for Argo CD
 └── clusters/
-    ├── dev/
-    ├── stg/
-    └── prod/
+    └── dev/
+        └── ingress-nginx.application.yaml
 ```
 
-Typical flow:
+## Prerequisites
 
-1. Add an Argo CD `Application` (or App-of-Apps root) under `gitops/clusters/<profile>/`.
-2. Point Argo CD at this repository path.
-3. Let Argo CD reconcile; do not `helm install` platform charts by hand.
+- Day 1 complete (Argo CD running)
+- `KUBECONFIG` pointed at the cluster
+- This repository available to Argo CD (push to GitHub/GitLab or use a reachable remote)
 
-## Status
+## Register the Git repo in Argo CD
 
-This directory is intentionally empty while Day 0 and Day 1 are validated locally.
+Replace the `ref: values` source URL in cluster Applications with your remote:
 
-See [`../docs/platform-lifecycle.md`](../docs/platform-lifecycle.md) for how the phases fit together.
+```bash
+# CLI example (UI: Settings → Repositories)
+argocd repo add https://github.com/YOUR_ORG/k8s-platform.git
+```
+
+For a **local-only** loop without pushing, use a tunnel or temporary remote; Argo CD must clone the repo that holds `gitops/apps/ingress-nginx/values.yaml`.
+
+## Deploy ingress-nginx (dev)
+
+Chart version is pinned on the Application: `gitops/clusters/dev/ingress-nginx.application.yaml` (`targetRevision`).
+
+```bash
+# Edit repoURL in gitops/clusters/dev/ingress-nginx.application.yaml if needed
+kubectl apply -f gitops/clusters/dev/ingress-nginx.application.yaml
+```
+
+Or sync from the Argo CD UI after applying the Application manifest.
+
+Kind maps **http://localhost:8080** and **https://localhost:8443** to node ports **80/443** when ingress-nginx `hostPort` is enabled (see Kind cluster configs under `infra/kind/`).
+
+Verify:
+
+```bash
+kubectl get pods -n ingress-nginx
+kubectl get ingressclass
+```
+
+## Next components (planned)
+
+cert-manager, metrics-server, monitoring, policies — add under `gitops/apps/` and `gitops/clusters/<profile>/`.
+
+See [`../docs/platform-lifecycle.md`](../docs/platform-lifecycle.md).
