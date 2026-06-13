@@ -13,7 +13,7 @@ Built for learning on **Kind** (macOS); structured so **Terraform** can replace 
 .
 ├── infra/              # Day 0 — cluster provisioning (Kind or Terraform)
 ├── bootstrap/          # Day 1 — Argo CD
-├── gitops/             # Day 2 — platform & apps (placeholder)
+├── gitops/             # Day 2 — App of Apps + platform (ingress-nginx, …)
 ├── scripts/
 │   ├── kind-up.sh           # Kind Day 0 + kubeconfig + Day 1 (local)
 │   └── kubeconfig-setup.sh  # export KUBECONFIG from a file path (any Day 0)
@@ -119,11 +119,30 @@ More detail: [bootstrap/README.md](./bootstrap/README.md).
 
 ---
 
+## Day 2 — GitOps (platform on the cluster)
+
+After Day 1, **push this repo to GitHub** and apply the **seed** Application once:
+
+```bash
+git push   # Argo CD clones Git; local files alone are not enough
+kubectl apply -f gitops/clusters/dev/core.application.yaml
+```
+
+| Concept | In this repo | Purpose |
+|---------|----------------|--------|
+| **AppProject** `core` | `gitops/clusters/dev/core/core.appproject.yaml` | Policy: allowed repos, namespaces, resources for platform apps |
+| **App of Apps** `core-apps` | `gitops/clusters/dev/core.application.yaml` | Syncs AppProject + platform Application CRs from `gitops/clusters/dev/core/` |
+| **Application** `ingress-nginx` | `core/applications/ingress-nginx.application.yaml` | Installs ingress-nginx Helm chart + `gitops/apps/ingress-nginx/values.yaml` |
+
+Step-by-step, diagrams, and adding cert-manager: **[gitops/README.md](./gitops/README.md)**.
+
+---
+
 ## Documentation
 
 - [Day 0 — Infrastructure](./infra/README.md)
 - [Day 1 — Bootstrap (Argo CD)](./bootstrap/README.md)
-- [Day 2 — GitOps](./gitops/README.md) (ingress-nginx)
+- [Day 2 — GitOps](./gitops/README.md) (AppProject, App of Apps, platform Applications)
 - [Platform lifecycle](./docs/platform-lifecycle.md)
 
 ---
@@ -134,7 +153,7 @@ More detail: [bootstrap/README.md](./bootstrap/README.md).
 Day 0: cluster API + kubeconfig file
        → source kubeconfig-setup.sh <path>
 Day 1: Argo CD (bootstrap.sh)
-Day 2: everything else from Git (gitops/) — start with ingress-nginx
+Day 2: git push → kubectl apply core.application.yaml → core-apps syncs platform from Git
 ```
 
 You can rename this repository when publishing; the folder model stays the same.

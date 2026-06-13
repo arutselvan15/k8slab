@@ -16,7 +16,7 @@ Day 2  gitops/          Everything else from Git
 |-------|-------------------|-------------------|
 | **Day 0** | Do we have a cluster? | `infra/terraform/` (placeholder), `infra/kind/` (local) |
 | **Day 1** | Can we manage the cluster via Git? | `bootstrap/argocd/` |
-| **Day 2** | What runs on the cluster? | `gitops/` (empty for now) |
+| **Day 2** | What runs on the cluster? | `gitops/` (App of Apps + platform apps) |
 
 ## What does not belong where
 
@@ -46,7 +46,8 @@ Same steps manually (same order as `kind-up.sh`):
 ./infra/kind/setup.sh dev
 source scripts/kubeconfig-setup.sh .kube/kind-dev.yaml
 ./bootstrap/bootstrap.sh dev
-# Day 2: commit manifests under gitops/ and sync with Argo CD
+# Day 2: push gitops/, then seed App of Apps:
+kubectl apply -f gitops/clusters/dev/core.application.yaml
 ```
 
 Teardown Day 0 only:

@@ -1,11 +1,4 @@
-# Replace repoURL with this repository (HTTPS or SSH) before syncing.
-# Argo CD must have the repo registered (Settings → Repositories).
-#
-# One-time if not using a remote yet:
-#   argocd repo add https://github.com/YOUR_ORG/k8s-platform.git
-#
-# Apply:
-#   kubectl apply -f gitops/clusters/dev/ingress-nginx.application.yaml
+# Platform app — synced by core-apps (App of Apps). project: core
 
 apiVersion: argoproj.io/v1alpha1
 kind: Application
@@ -17,7 +10,7 @@ metadata:
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
-  project: default
+  project: core
   sources:
     - repoURL: https://kubernetes.github.io/ingress-nginx
       chart: ingress-nginx
