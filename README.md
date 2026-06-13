@@ -1,30 +1,27 @@
 
 # Kubernetes Learning Lab
 
-A local Kubernetes platform built on **Kind**, **Argo CD**, **Helm**, and **GitOps** principles.
-
-The goal of this project is to learn Kubernetes, platform engineering, operators, and GitOps using a repeatable, reproducible environment that can be created and destroyed at any time.
+Local Kubernetes on **Kind**, **Argo CD**, **Helm**, and **GitOps** — for learning on a Mac. Clusters: **dev**, **stg**, and **prod** (unique host ingress ports per profile).
 
 ---
 
-# Design Principles
+## Bootstrap
 
-This project follows the same high-level pattern used by many platform engineering teams.
-
-```text
-Bootstrap
-    ↓
-ArgoCD
-    ↓
-Git Repository
-    ↓
-Everything Else
+```bash
+chmod +x bootstrap/bootstrap.sh bootstrap/kind/*.sh bootstrap/argocd/install.sh
+./bootstrap/bootstrap.sh dev   # or stg | prod — safe to re-run
 ```
 
-Only the minimum components required to start GitOps are installed manually.
+Details: [bootstrap/README.md](./bootstrap/README.md)
 
-Once Argo CD is running, all cluster components should be deployed and managed from Git.
+---
 
-# Bootstrap
+## Design
 
-Refer the bootstrap details [here](./bootstrap/README.md)
+```text
+Bootstrap (Kind + Argo CD)
+    ↓
+Git repository
+    ↓
+Everything else (GitOps)
+```

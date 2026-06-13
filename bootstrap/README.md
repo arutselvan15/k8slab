@@ -1,303 +1,116 @@
 # Bootstrap Guide
 
-This document covers the initial bootstrap process for the Kubernetes GitOps Learning Lab.
+Create a local Kind cluster and install Argo CD. Run one cluster at a time on your Mac, or use separate profiles concurrently (unique host ports).
 
-The purpose of bootstrapping is to create a Kubernetes cluster and install Argo CD so that all future cluster components can be managed through GitOps.
+Everything after bootstrap should be managed with GitOps through Argo CD.
 
 ---
 
-# Bootstrap Architecture
+## Architecture
 
 ```text
-bootstrap/kind/setup.sh
+bootstrap/bootstrap.sh <profile>
         ↓
-Kind Cluster
+Kind cluster (create if missing)
         ↓
-bootstrap/argocd/install.sh
-        ↓
-ArgoCD
+Argo CD (helm upgrade --install)
         ↓
 GitOps manages everything else
 ```
 
-Only two components are installed manually:
-
-1. Kind (Kubernetes cluster)
-2. Argo CD (GitOps controller)
-
-Everything else will eventually be deployed through Argo CD.
-
 ---
 
-# Prerequisites
-
-Install the required tools:
+## Prerequisites
 
 ```bash
-brew install kind
-brew install kubectl
-brew install helm
-brew install git
-```
-
-Verify installation:
-
-```bash
-kind version
-kubectl version --client
-helm version
-git --version
+brew install kind kubectl helm git
 ```
 
 ---
 
-# Bootstrap Directory Structure
+## Directory structure
 
 ```text
 bootstrap/
+├── bootstrap.sh          # Kind + Argo CD (idempotent)
 ├── kind/
 │   ├── dev-cluster.yaml
-│   └── setup.sh
-│
+│   ├── stg-cluster.yaml
+│   ├── prod-cluster.yaml
+│   ├── setup.sh
+│   └── destroy.sh
 └── argocd/
     ├── install.sh
     └── values.yaml
 ```
 
-## kind/
+---
 
-Contains files required to create the local Kubernetes cluster.
+## Bootstrap (recommended)
 
-### cluster.yaml
+From the repo root or `bootstrap/`:
 
-Defines the Kind cluster configuration.
+```bash
+chmod +x bootstrap/bootstrap.sh bootstrap/kind/*.sh bootstrap/argocd/install.sh
+./bootstrap/bootstrap.sh dev    # or stg | prod
+```
 
-### setup.sh
+Re-running the same command is safe: it skips Kind creation if the cluster exists and upgrades Argo CD via Helm.
 
-Creates the Kubernetes cluster using the Kind configuration.
+| Profile | Kind cluster name | kubectl context | Ingress (host HTTP / HTTPS) |
+|---------|-------------------|-----------------|-----------------------------|
+| dev     | dev               | kind-dev        | 8080 / 8443                 |
+| stg     | stg               | kind-stg        | 9080 / 9443                 |
+| prod    | prod              | kind-prod       | 80 / 443                    |
+
+Kind sets the kubeconfig context to `kind-<name>` — do not put `kind-` in the cluster name itself.
 
 ---
 
-## argocd/
+## Manual steps (optional)
 
-Contains files required to install Argo CD.
-
-### values.yaml
-
-Custom Helm values used during installation.
-
-### install.sh
-
-Installs or upgrades Argo CD using Helm.
-
----
-
-# Step 1 - Create the Kind Cluster
-
-Navigate to the Kind bootstrap directory:
+Kind only:
 
 ```bash
-cd bootstrap/kind
+cd bootstrap/kind && ./setup.sh dev
 ```
 
-Create the cluster:
+Argo CD only (current context or explicit):
 
 ```bash
-./setup.sh
-```
-
-Example output:
-
-```text
-Creating cluster "dev" ...
-```
-
-Verify the cluster:
-
-```bash
-kubectl get nodes
-```
-
-Expected:
-
-```text
-NAME                STATUS
-dev-control-plane   Ready
-```
-
-Verify Kubernetes connectivity:
-
-```bash
-kubectl cluster-info
-```
-
-Example:
-
-```text
-Kubernetes control plane is running at https://127.0.0.1:xxxxx
-```
-
-At this point a working Kubernetes cluster is available.
-
----
-
-# Step 2 - Install Argo CD
-
-Navigate to the Argo CD bootstrap directory:
-
-```bash
-cd ../argocd
-```
-
-Install Argo CD:
-
-```bash
-./install.sh
-```
-
-The installation script performs the following actions:
-
-1. Adds the Argo Helm repository
-2. Updates Helm repositories
-3. Creates the `argocd` namespace
-4. Installs or upgrades Argo CD
-5. Waits for deployment completion
-
----
-
-# Verify Argo CD Installation
-
-Check all Argo CD pods:
-
-```bash
-kubectl get pods -n argocd
-```
-
-Expected output:
-
-```text
-argocd-application-controller
-argocd-applicationset-controller
-argocd-repo-server
-argocd-server
-argocd-redis
-```
-
-All pods should eventually show:
-
-```text
-Running
+cd bootstrap/argocd && ./install.sh kind-dev
 ```
 
 ---
 
-# Verify Helm Installation
+## Argo CD access
 
-Confirm Helm is managing Argo CD:
+Initial admin password:
 
 ```bash
-helm list -n argocd
+kubectl --context kind-dev get secret argocd-initial-admin-secret \
+  -n argocd -o jsonpath='{.data.password}' | base64 --decode; echo
 ```
 
-Expected:
+Port-forward (e.g. port 8888 on **dev** to avoid clashing with ingress on 8080):
 
-```text
-NAME     NAMESPACE
-argocd   argocd
+```bash
+kubectl --context kind-dev port-forward svc/argocd-server -n argocd 8888:80
 ```
+
+Open http://localhost:8888 (user `admin`).
 
 ---
 
-# Retrieve Initial Admin Password
-
-Argo CD generates an initial admin password stored in a Kubernetes Secret.
-
-Retrieve it:
+## Cleanup
 
 ```bash
-kubectl get secret argocd-initial-admin-secret \
-  -n argocd \
-  -o jsonpath='{.data.password}' \
-  | base64 --decode
-
-echo
-```
-
-Save this password for login.
-
----
-
-# Access Argo CD
-
-Create a local port-forward:
-
-```bash
-kubectl port-forward \
-  svc/argocd-server \
-  -n argocd \
-  8080:80
-```
-
-Open your browser:
-
-```text
-http://localhost:8080
-```
-
-Login using:
-
-```text
-Username: admin
-Password: <retrieved password>
-```
-
----
-
-# Current State
-
-After completing bootstrap:
-
-```text
-Mac
-│
-├── Kind Cluster
-│
-└── ArgoCD
-```
-
-The cluster is now ready for GitOps.
-
-Future components such as:
-
-- ingress-nginx
-- cert-manager
-- external-secrets
-- dashboard
-- monitoring
-- Kubeflow
-
-will be installed and managed through Argo CD rather than manually with `kubectl apply` or `helm install`.
-
----
-
-# Cleanup
-
-Delete the cluster:
-
-```bash
-kind delete cluster --name dev
-```
-
-Verify:
-
-```bash
+./bootstrap/kind/destroy.sh dev    # or stg | prod
 kind get clusters
 ```
 
-The cluster should no longer appear in the list.
-
 ---
 
-# Next Step
+## Next step
 
-The next milestone is creating a GitOps repository structure and a Root Application (App-of-Apps pattern) so Argo CD can begin managing cluster infrastructure directly from Git.
+Add a GitOps layout and a root Application (App-of-Apps) so Argo CD syncs cluster add-ons from Git.
