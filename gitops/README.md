@@ -64,7 +64,7 @@ Later: **`cert-manager.application.yaml`** under `core/applications/`, values un
 
 ## Prerequisites
 
-1. **Day 1 done** — Argo CD running (`./bootstrap/bootstrap.sh` or `./scripts/kind-up.sh`).
+1. **Day 1 done** — Argo CD running (`./scripts/kind-up.sh dev` includes Day 1; or `./bootstrap/bootstrap.sh` alone).
 2. **Git repo registered** — `argocd/install.sh` applies `repo.*.yaml` and `repo-creds.*.yaml` (placeholders from [`../bootstrap/env/bootstrap.env`](../bootstrap/env/bootstrap.env) via envsubst).
 3. **`KUBECONFIG`** set ([`../scripts/kubeconfig-setup.sh`](../scripts/kubeconfig-setup.sh)).
 4. **Push to Git** — same URLs as in Application manifests (Argo clones remote, not your laptop tree).
@@ -92,6 +92,8 @@ git push
 ```
 
 ### 3. Apply the seed (App of Apps entrypoint)
+
+If you used `./scripts/kind-up.sh dev`, this step is already done. Otherwise:
 
 ```bash
 kubectl apply -f gitops/clusters/dev/core.application.yaml

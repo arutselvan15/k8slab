@@ -37,13 +37,13 @@ Bootstrap pins and secrets: `bootstrap/env/defaults.env` + gitignored `bootstrap
 
 ## Local workflow (macOS)
 
-Kind one-shot (Day 0 + kubeconfig + Day 1):
+Kind one-shot (Day 0 + kubeconfig + Day 1 + Day 2 seed when present):
 
 ```bash
 ./scripts/kind-up.sh dev
 ```
 
-`kind-up.sh` runs `require-tools.sh kubectl helm envsubst`, then Kind setup, kubeconfig, and `bootstrap.sh`.
+`kind-up.sh` applies `gitops/clusters/<profile>/core.application.yaml` if it exists.
 
 Manual (same order):
 
