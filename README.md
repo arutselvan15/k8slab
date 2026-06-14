@@ -26,9 +26,13 @@ This runs:
 
 1. **Day 0** — Kind cluster + kubeconfig (`.kube/kind-dev.yaml`)
 2. **Day 1** — Argo CD (Helm + repo Secrets)
-3. **Day 2** — `kubectl apply` of `gitops/clusters/dev/core.application.yaml` (App of Apps **`core-apps`**)
+3. **Day 2 seed** — `kubectl apply` of `gitops/clusters/dev/core.application.yaml` (App of Apps **`core-apps`**)
 
-Push this repo to GitHub (same URL as in gitops manifests) so Argo CD can sync. If Applications stay **OutOfSync**, check repo creds and remote Git — [gitops/README.md](./gitops/README.md).
+**After `kind-up`:** push `gitops/` to GitHub (same URL as in manifests). Argo syncs **ingress-nginx**, **cert-manager**, and **core-certificates** (platform TLS under `core/certificates/`). When the Argo CD `Certificate` is Ready, run **`./bootstrap/bootstrap.sh dev`** again so Helm enables ingress with secret **`argocd-server-tls`**. Use **`https://argocd.dev:8443`** with `127.0.0.1 argocd.dev` in `/etc/hosts`. Details: [gitops/README.md](./gitops/README.md), [bootstrap/README.md](./bootstrap/README.md).
+
+If you change **`core.application.yaml`** (e.g. `directory.exclude`), re-apply the seed: `kubectl apply -f gitops/clusters/dev/core.application.yaml`.
+
+Push this repo to GitHub so Argo CD can sync. If Applications stay **OutOfSync**, see troubleshooting in [gitops/README.md](./gitops/README.md).
 
 Other profiles: `./scripts/kind-up.sh stg|prod` (Day 2 runs only when `gitops/clusters/<profile>/core.application.yaml` exists).
 

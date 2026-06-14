@@ -22,7 +22,7 @@ Day 2  gitops/          Everything else from Git
 
 - **Day 0:** VPC, cluster, node pools — not Argo CD, not ingress.
 - **Day 1:** Argo CD Helm install, Argo CD repo / repo-creds Secrets — not cert-manager or app stacks.
-- **Day 2:** Ingress, cert-manager, monitoring, policies, team apps — not `kind create` or cluster Terraform.
+- **Day 2:** Ingress, cert-manager, **core-certificates** (platform TLS CRs), monitoring, policies, team apps — not `kind create` or cluster Terraform.
 
 ## Environment names
 
@@ -52,9 +52,13 @@ Manual (same order):
 ./infra/kind/setup.sh dev
 source scripts/kubeconfig-setup.sh .kube/kind-dev.yaml
 ./bootstrap/bootstrap.sh dev
-# Day 2: push gitops/, then seed App of Apps:
+# Day 2: push gitops/, apply seed, wait for core-certificates + Ready cert, then:
 kubectl apply -f gitops/clusters/dev/core.application.yaml
+# after argocd-server-tls Ready:
+./bootstrap/bootstrap.sh dev
 ```
+
+**Dev UI:** `127.0.0.1 argocd.dev` in `/etc/hosts` → **https://argocd.dev:8443** (Kind node port 8443). See [bootstrap/README.md](../bootstrap/README.md) and [gitops/README.md](../gitops/README.md).
 
 Teardown Day 0 only:
 

@@ -1,0 +1,11 @@
+# Kind dev: self-signed CA for argocd.dev (browser warning expected).
+# Synced by Application core-certificates (after cert-manager CRDs exist).
+
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: selfsigned
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  selfSigned: {}

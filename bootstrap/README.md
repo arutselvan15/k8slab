@@ -54,7 +54,34 @@ source scripts/kubeconfig-setup.sh .kube/kind-dev.yaml
 
 Keep `GIT_REPO_URL` in `defaults.env` and `repo.k8s-platform.yaml` aligned with `gitops/clusters/…` Application `repoURL` values.
 
-## Argo CD UI
+Dev ingress hostname and TLS secret name: [`argocd/values/overlays/dev.yaml`](argocd/values/overlays/dev.yaml) (Helm); Secret material from GitOps **`argocd-server-tls`** Certificate.
+
+## Dev: ingress + TLS (two steps)
+
+Argo CD itself is **Day 1 Helm**; platform TLS is **Day 2 GitOps**.
+
+```text
+GitOps sync                    Bootstrap (Helm)
+───────────                    ────────────────
+ingress-nginx          →       (routing ready)
+cert-manager           →       CRDs + controller
+core-certificates      →       ClusterIssuer + Certificate → Secret argocd-server-tls
+                               ↓ Certificate Ready
+./bootstrap/bootstrap.sh dev   → server.ingress enabled, secretName argocd-server-tls
+```
+
+1. Push and sync [gitops](../gitops/README.md) until **`kubectl get certificate -n argocd argocd-server-tls`** shows **Ready**.
+2. Re-run **`./bootstrap/bootstrap.sh dev`** so the dev overlay mounts that Secret on the ingress.
+
+Helm values live in **`argocd/values/base.yaml`** (shared ingress defaults, disabled by default) + **`overlays/<profile>.yaml`**. See [`argocd/values/overlays/README.md`](argocd/values/overlays/README.md).
+
+## Argo CD UI (dev)
+
+After GitOps sync + Certificate Ready + **`./bootstrap/bootstrap.sh dev`** (ingress in [`argocd/values/overlays/dev.yaml`](argocd/values/overlays/dev.yaml)):
+
+**https://argocd.dev:8443** — add `127.0.0.1 argocd.dev` to `/etc/hosts`.
+
+Until then, port-forward:
 
 ```bash
 kubectl port-forward svc/argocd-server -n argocd 8888:80
@@ -64,6 +91,12 @@ User **`admin`**. Optional **`ARGOCD_ADMIN_PASSWORD`** in `bootstrap.env` (patch
 
 `kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath='{.data.password}' | base64 --decode; echo`
 
-## Next
+[`../gitops/README.md`](../gitops/README.md) — push Git, apply or refresh `core.application.yaml`, verify **`core-certificates`**.
 
-[`../gitops/README.md`](../gitops/README.md) — push Git, apply `core.application.yaml`.
+## What stays in bootstrap (not GitOps)
+
+| Concern | Why |
+|---------|-----|
+| Argo CD Helm install | GitOps controller must exist before Applications |
+| Repo / repo-creds Secrets | Argo needs clone access before first sync |
+| Dev ingress **enable** + `secretName` | Chart is Day 1; TLS **material** comes from Day 2 `Certificate` — re-run bootstrap after cert is Ready |
