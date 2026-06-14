@@ -10,7 +10,7 @@ Helm merges [`../base.yaml`](../base.yaml) with one overlay per profile.
 
 ## Dev ingress + cert-manager
 
-- **Secret `argocd-server-tls`** is **not** created by Helm. It is issued by cert-manager via [`../../../gitops/clusters/dev/core/certificates/argocd-server-certificate.yaml`](../../../gitops/clusters/dev/core/certificates/argocd-server-certificate.yaml) (synced by Application **`core-certificates`**).
+- **Secret `argocd-server-tls`** is **not** created by Helm. It is issued via [`../../../gitops/clusters/dev/core/certificates/argocd-server-certificate.yaml`](../../../gitops/clusters/dev/core/certificates/argocd-server-certificate.yaml) (Application **`core-certificates`** only).
 - First **`./bootstrap/bootstrap.sh dev`** installs Argo CD (ingress may be enabled in overlay but Secret appears only after GitOps).
 - When **`kubectl get certificate -n argocd argocd-server-tls`** is **Ready**, run **`./bootstrap/bootstrap.sh dev`** again so the ingress picks up the Secret.
 

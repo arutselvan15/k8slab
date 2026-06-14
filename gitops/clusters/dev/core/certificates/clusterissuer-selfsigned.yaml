@@ -1,5 +1,5 @@
 # Kind dev: self-signed CA for argocd.dev (browser warning expected).
-# Synced by Application core-certificates (after cert-manager CRDs exist).
+# Synced only by Application core-certificates (not core-apps).
 
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer

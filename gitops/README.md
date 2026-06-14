@@ -10,12 +10,12 @@ Full reference for this repo: concepts below, then step-by-step **Deploy dev cor
 
 | Kind | Example in this repo | Purpose |
 |------|----------------------|---------|
-| **AppProject** | `core.appproject.yaml` → AppProject **`core`** | **Policy**, not a deployable app. Defines which Git repos, clusters/namespaces, and resource types member Applications may use. Platform apps use `spec.project: core`. |
-| **Application (App of Apps)** | `core.application.yaml` → Application **`core-apps`** | **Orchestrator.** One Application whose Git path contains AppProject + other Application manifests. Syncs “what to run” into the `argocd` namespace. Applied **once** from your laptop/CI (seed); not created by GitOps itself. |
-| **Application (platform app)** | `ingress-nginx.application.yaml` | **Real delivery.** Helm chart + values → target namespace (e.g. `ingress-nginx`, `cert-manager`). |
-| **Application (platform TLS)** | `core-certificates.application.yaml` | **cert-manager CRs** only (`ClusterIssuer`, `Certificate` under `core/certificates/`). Separate app so CRDs exist before sync. |
+| **AppProject** | `applications/core.appproject.yaml` → AppProject **`core`** | **Policy** for platform apps. Synced by **`core-apps`** (wave `-1`). |
+| **Application (App of Apps)** | `core.application.yaml` → **`core-apps`** | Syncs **`gitops/clusters/dev/core/applications/`** only — AppProject + child Application CRs. |
+| **Application (platform app)** | `ingress-nginx.application.yaml` | Helm chart + values → target namespace. |
+| **Application (platform TLS)** | `core-certificates.application.yaml` | cert-manager CRs from **`core/certificates/`** (separate Git path, project **`core`**). |
 
-**Analogy:** AppProject = firewall rules for a team. App-of-Apps = folder that lists which Argo apps exist. Platform Application = installs nginx/cert-manager. **`core-certificates`** = shared folder for all core infra TLS manifests (Argo CD today; more YAML files as you add services).
+**Analogy:** **`core-apps`** = register what runs (Applications + AppProject). **`core-certificates`** = deliver infra TLS. Certificate YAML lives under **`core/certificates/`** for organization but is **not** on the **`core-apps`** source path.
 
 ---
 
@@ -30,18 +30,24 @@ kubectl apply
         ▼
                     Application "core-apps"
                     (project: default)
-                    source: gitops/clusters/dev/core/
+                    source: gitops/clusters/dev/core/applications/
         │
-        ├── wave -1   AppProject "core"
-        │
+        ├── wave -1   AppProject "core"     (core.appproject.yaml)
         ├── wave 10   Application "ingress-nginx"
-        ├── wave 20   Application "cert-manager" (Helm → CRDs)
-        └── wave 25   Application "core-certificates" → core/certificates/ (Issuers + Certificates)
+        ├── wave 20   Application "cert-manager"
+        └── wave 25   Application "core-certificates"
+                              │
+                              ▼
+                    source: gitops/clusters/dev/core/certificates/
+                    (ClusterIssuer, Certificate, …)
 ```
 
-**Why a separate Application for TLS?** cert-manager CRDs exist only after the `cert-manager` Helm release syncs. `core-apps` uses `directory.exclude: certificates/*` so it does not apply those manifests in the same pass; **`core-certificates`** syncs all infra TLS under `core/certificates/` afterward (Argo CD today; add more YAML as needed).
+| Application | Git path | Argo UI resources |
+|-------------|----------|-------------------|
+| **`core-apps`** | `core/applications/` | AppProject **`core`** + child **Application** CRs only |
+| **`core-certificates`** | `core/certificates/` | **ClusterIssuer**, **Certificate**, future infra TLS |
 
-**`gitops/apps/`** holds Helm **values** only (no Application CRs). Child apps reference them via multi-source `$values/gitops/apps/...`.
+**`gitops/apps/`** holds Helm **values** only. Child apps use multi-source `$values/gitops/apps/...`.
 
 ---
 
@@ -50,32 +56,29 @@ kubectl apply
 ```text
 gitops/
 ├── apps/
-│   ├── ingress-nginx/
-│   │   └── values.yaml
-│   └── cert-manager/
-│       └── values.yaml
-└── clusters/
-    └── dev/
-        ├── core.application.yaml   # exclude certificates/* from core-apps recurse
-        └── core/
-            ├── core.appproject.yaml
-            ├── certificates/          # infra TLS (synced by Application core-certificates)
-            │   ├── clusterissuer-selfsigned.yaml
-            │   └── argocd-server-certificate.yaml   # example: Argo CD ingress
-            └── applications/
-                ├── ingress-nginx.application.yaml
-                ├── cert-manager.application.yaml
-                └── core-certificates.application.yaml
+│   ├── ingress-nginx/values.yaml
+│   └── cert-manager/values.yaml
+└── clusters/dev/
+    ├── core.application.yaml          # seed → core-apps
+    └── core/
+        ├── applications/              # core-apps source (only this path)
+        │   ├── core.appproject.yaml
+        │   ├── ingress-nginx.application.yaml
+        │   ├── cert-manager.application.yaml
+        │   └── core-certificates.application.yaml
+        └── certificates/              # core-certificates source only
+            ├── clusterissuer-selfsigned.yaml
+            └── argocd-server-certificate.yaml
 ```
 
 ---
 
 ## Prerequisites
 
-1. **Day 1 done** — Argo CD running (`./scripts/kind-up.sh dev` includes Day 1; or `./bootstrap/bootstrap.sh` alone).
-2. **Git repo registered** — `argocd/install.sh` applies `repo.*.yaml` and `repo-creds.*.yaml` (placeholders from [`../bootstrap/env/bootstrap.env`](../bootstrap/env/bootstrap.env) via envsubst).
+1. **Day 1 done** — Argo CD running (`./scripts/kind-up.sh dev` or `./bootstrap/bootstrap.sh`).
+2. **Git repo registered** — `argocd/install.sh` applies repo Secrets ([`../bootstrap/env/`](../bootstrap/env/)).
 3. **`KUBECONFIG`** set ([`../scripts/kubeconfig-setup.sh`](../scripts/kubeconfig-setup.sh)).
-4. **Push to Git** — same URLs as in Application manifests (Argo clones remote, not your laptop tree).
+4. **Push to Git** — Argo clones remote, not your working tree.
 
 ---
 
@@ -83,13 +86,7 @@ gitops/
 
 ### 1. Align Git URLs
 
-Match **`repoURL`** in:
-
-- `gitops/clusters/dev/core.application.yaml`
-- Each platform Application’s `ref: values` source
-- `core.appproject.yaml` → `sourceRepos`
-
-Edit `bootstrap/argocd/repos/repo.k8s-platform.yaml` and `env/defaults.env` (`GIT_REPO_URL`) if needed.
+Match **`repoURL`** in `core.application.yaml`, each platform Application’s `ref: values` source, and **`applications/core.appproject.yaml`** → `sourceRepos`.
 
 ### 2. Push Git
 
@@ -99,83 +96,60 @@ git commit -m "Day 2: core platform gitops"
 git push
 ```
 
-### 3. Apply the seed (App of Apps entrypoint)
+### 3. Apply the seed
 
-If you used `./scripts/kind-up.sh dev`, this step is already done **once**. Re-apply when **`gitops/clusters/dev/core.application.yaml`** changes (e.g. `directory.exclude` for `certificates/*`):
+Re-apply when **`core.application.yaml`** changes (e.g. `core-apps` source path):
 
 ```bash
 kubectl apply -f gitops/clusters/dev/core.application.yaml
 ```
 
-This creates or updates **`core-apps`** only. Do **not** `kubectl apply` files under `core/applications/` by hand.
+Do **not** hand-apply files under `core/applications/` or `core/certificates/`.
 
 ### 4. Verify
 
 ```bash
-kubectl get appprojects -n argocd
 kubectl get applications -n argocd
-# expect: core-apps, ingress-nginx, cert-manager, core-certificates (Synced)
-kubectl get pods -n ingress-nginx
-kubectl get pods -n cert-manager
-kubectl get clusterissuer selfsigned
+# core-apps, ingress-nginx, cert-manager, core-certificates (Synced)
 kubectl get certificate -n argocd argocd-server-tls
-kubectl get ingress -n argocd
 ```
 
-Add **`127.0.0.1 argocd.dev`** to `/etc/hosts`.
+Add **`127.0.0.1 argocd.dev`** to `/etc/hosts`. When the Certificate is **Ready**, run **`./bootstrap/bootstrap.sh dev`**, then open **https://argocd.dev:8443**.
 
-When **`argocd-server-tls`** is Ready, enable Argo ingress (dev overlay):
-
-```bash
-source scripts/kubeconfig-setup.sh .kube/kind-dev.yaml
-./bootstrap/bootstrap.sh dev
-```
-
-Open **`https://argocd.dev:8443`** (self-signed; browser warning is expected on Kind).
-
-Kind ingress node ports: **http://localhost:8080** / **https://localhost:8443** (see `infra/kind/dev-cluster.yaml`).
-
-### 5. Migrate old seeds (if any)
+### 5. Migrate old layouts
 
 ```bash
-kubectl delete application dev-root -n argocd --ignore-not-found
-kubectl delete application core-root -n argocd --ignore-not-found
+kubectl delete application dev-root core-root platform-certificates argocd-certificates -n argocd --ignore-not-found
+kubectl apply -f gitops/clusters/dev/core.application.yaml
+kubectl annotate application core-apps -n argocd argocd.argoproj.io/refresh=hard --overwrite
 ```
 
 ---
 
 ## Troubleshooting
 
-### `core-apps` OutOfSync — Certificate / ClusterIssuer CRD not found
+### Certs listed under **`core-apps`**
 
-**Cause:** TLS manifests were under `core/` and `core-apps` applied them before cert-manager installed CRDs (see sync diagram above).
+Old **`core-apps`** path was `core/` with `recurse`. **Fix:** path must be **`core/applications/`** only; certs in **`core/certificates/`**. Re-apply seed, hard-refresh, sync with prune.
 
-**Fix:** Ensure `core.application.yaml` excludes `certificates/*` and TLS is synced by **`core-certificates`**, then **push to Git** and refresh:
+### CRD not found on sync
 
-```bash
-kubectl patch application core-apps -n argocd --type merge -p '{"metadata":{"annotations":{"argocd.argoproj.io/refresh":"hard"}}}'
-```
-
-### `Resource not found` — Application `cert-manager`
-
-Usually the same failed `core-apps` sync: the `cert-manager` Application CR never got created. After the layout fix and push, `core-apps` should sync wave 20 successfully; then `cert-manager` and `core-certificates` auto-sync.
+Do not add cert YAML under **`applications/`**. Use **`core-certificates`** → **`core/certificates/`**.
 
 ---
 
 ## Add another core component
 
 1. `gitops/apps/<name>/values.yaml`
-2. `gitops/clusters/dev/core/applications/<name>.application.yaml` (`spec.project: core`, sync-wave after deps)
-3. Update **`core.appproject.yaml`**: `sourceRepos`, `destinations`
-4. Commit, push — **`core-apps`** sync adds the Application
-
-Example already in repo: **ingress-nginx** (chart `4.12.1`), **cert-manager** (`v1.17.2`), **core-certificates** (Issuers + Certificates).
+2. `gitops/clusters/dev/core/applications/<name>.application.yaml` (`project: core`, sync-wave)
+3. Update **`applications/core.appproject.yaml`** if new repo or namespace
+4. Push — **`core-apps`** picks up the new Application
 
 ### Add a core infra certificate
 
-1. Add a `Certificate` (and optional `Issuer`) YAML under **`gitops/clusters/dev/core/certificates/`** — do not remove `directory.exclude: certificates/*` from the seed.
-2. Keep **`secretName`** / DNS names aligned with the consuming app (e.g. Argo CD: [`bootstrap/argocd/values/overlays/dev.yaml`](../bootstrap/argocd/values/overlays/dev.yaml) `server.ingress.secretName`).
-3. Commit, push — **`core-certificates`** syncs the new file (no new Application CR unless you split paths later).
+1. Add YAML under **`gitops/clusters/dev/core/certificates/`** (never under **`applications/`**).
+2. Align **`secretName`** / DNS with the consumer (e.g. [`bootstrap/argocd/values/overlays/dev.yaml`](../bootstrap/argocd/values/overlays/dev.yaml)).
+3. Push — **`core-certificates`** syncs only.
 
 ---
 
@@ -184,10 +158,7 @@ Example already in repo: **ingress-nginx** (chart `4.12.1`), **cert-manager** (`
 | Phase | Installed by |
 |--------|----------------|
 | Cluster (Day 0) | Kind / Terraform |
-| Argo CD (Day 1) | `bootstrap.sh` → `argocd/install.sh` (Helm + repos) |
-| Git repo + GitHub creds | [`bootstrap/argocd/repos/`](../bootstrap/argocd/repos/) + [`bootstrap/env/`](../bootstrap/env/) |
-| Seed **`core-apps`** | `kubectl apply -f core.application.yaml` (once per env) |
-
----
+| Argo CD (Day 1) | `bootstrap.sh` → `argocd/install.sh` |
+| Seed **`core-apps`** | `kubectl apply -f core.application.yaml` |
 
 See also: [`../docs/platform-lifecycle.md`](../docs/platform-lifecycle.md), [Day 1 bootstrap](../bootstrap/README.md).

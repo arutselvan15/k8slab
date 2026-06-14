@@ -1,4 +1,4 @@
-# cert-manager CRs for core platform (Issuers, Certificates). Not applied by core-apps — see core.application.yaml exclude.
+# cert-manager CRs for core platform — gitops/clusters/dev/core/certificates/ (not under core-apps path).
 
 apiVersion: argoproj.io/v1alpha1
 kind: Application

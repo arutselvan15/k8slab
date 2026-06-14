@@ -2,7 +2,7 @@
 #
 #   kubectl apply -f gitops/clusters/dev/core.application.yaml
 #
-# Creates Application "core-apps", which syncs gitops/clusters/dev/core/.
+# Creates Application "core-apps", which syncs only AppProject + child Application CRs.
 
 apiVersion: argoproj.io/v1alpha1
 kind: Application
@@ -16,11 +16,7 @@ spec:
   source:
     repoURL: https://github.com/arutselvan15/k8s-platform.git
     targetRevision: HEAD
-    path: gitops/clusters/dev/core
-    directory:
-      recurse: true
-      # core/certificates/* — synced by Application core-certificates (after cert-manager CRDs).
-      exclude: certificates/*
+    path: gitops/clusters/dev/core/applications
   destination:
     server: https://kubernetes.default.svc
     namespace: argocd

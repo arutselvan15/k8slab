@@ -28,9 +28,7 @@ This runs:
 2. **Day 1** — Argo CD (Helm + repo Secrets)
 3. **Day 2 seed** — `kubectl apply` of `gitops/clusters/dev/core.application.yaml` (App of Apps **`core-apps`**)
 
-**After `kind-up`:** push `gitops/` to GitHub (same URL as in manifests). Argo syncs **ingress-nginx**, **cert-manager**, and **core-certificates** (platform TLS under `core/certificates/`). When the Argo CD `Certificate` is Ready, run **`./bootstrap/bootstrap.sh dev`** again so Helm enables ingress with secret **`argocd-server-tls`**. Use **`https://argocd.dev:8443`** with `127.0.0.1 argocd.dev` in `/etc/hosts`. Details: [gitops/README.md](./gitops/README.md), [bootstrap/README.md](./bootstrap/README.md).
-
-If you change **`core.application.yaml`** (e.g. `directory.exclude`), re-apply the seed: `kubectl apply -f gitops/clusters/dev/core.application.yaml`.
+**After `kind-up`:** push `gitops/` to GitHub. Argo syncs **ingress-nginx**, **cert-manager**, and **core-certificates** (`core/certificates/`). When **`argocd-server-tls`** is Ready, run **`./bootstrap/bootstrap.sh dev`**, then **https://argocd.dev:8443** (`127.0.0.1 argocd.dev` in `/etc/hosts`). Re-apply **`core.application.yaml`** if the **`core-apps`** source path changes.
 
 Push this repo to GitHub so Argo CD can sync. If Applications stay **OutOfSync**, see troubleshooting in [gitops/README.md](./gitops/README.md).
 

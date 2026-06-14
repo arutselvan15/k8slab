@@ -1,4 +1,5 @@
 # Keep sourceRepos in sync with Application repoURLs in gitops/clusters/.
+# Synced by core-apps (same directory as child Application manifests).
 
 apiVersion: argoproj.io/v1alpha1
 kind: AppProject
