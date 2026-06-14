@@ -60,7 +60,9 @@ Keep `GIT_REPO_URL` in `defaults.env` and `repo.k8s-platform.yaml` aligned with 
 kubectl port-forward svc/argocd-server -n argocd 8888:80
 ```
 
-Password: `kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath='{.data.password}' | base64 --decode; echo`
+User **`admin`**. Optional **`ARGOCD_ADMIN_PASSWORD`** in `bootstrap.env` (patched after Helm). Otherwise:
+
+`kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath='{.data.password}' | base64 --decode; echo`
 
 ## Next
 

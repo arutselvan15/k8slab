@@ -46,6 +46,34 @@ apply_argocd_repos() {
   shopt -u nullglob
 }
 
+argocd_admin_bcrypt_hash() {
+  local password=$1
+  if ! command -v htpasswd >/dev/null 2>&1; then
+    echo "htpasswd required to set ARGOCD_ADMIN_PASSWORD (install httpd/openssl tooling)" >&2
+    exit 1
+  fi
+  htpasswd -nbBC 10 "" "$password" | cut -d: -f2 | sed 's/^\$2y\$/\$2a\$/'
+}
+
+set_argocd_admin_password_from_env() {
+  local hash mtime
+
+  if [[ -z "${ARGOCD_ADMIN_PASSWORD:-}" ]]; then
+    return 0
+  fi
+
+  if ! kubectl get secret argocd-secret -n argocd >/dev/null 2>&1; then
+    echo "argocd-secret not found; skip ARGOCD_ADMIN_PASSWORD patch" >&2
+    return 0
+  fi
+
+  hash="$(argocd_admin_bcrypt_hash "$ARGOCD_ADMIN_PASSWORD")"
+  mtime="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  echo "Setting Argo CD admin password from bootstrap.env (user admin) ..."
+  kubectl patch secret argocd-secret -n argocd --type merge \
+    --patch "{\"stringData\":{\"admin.password\":\"${hash}\",\"admin.passwordMtime\":\"${mtime}\"}}"
+}
+
 install_argocd() {
   local overlay=$1
   local overlay_file="${OVERLAYS_DIR}/${overlay}.yaml"
@@ -80,6 +108,7 @@ Chart: argo/argo-cd ${ARGO_CD_CHART_VERSION}
 After Helm: repo-creds (from bootstrap/env) then repos/ (see repos/README.md).
 
 Environment: bootstrap/env/defaults.env + optional bootstrap/env/bootstrap.env
+Optional: ARGOCD_ADMIN_PASSWORD in bootstrap.env (patched after Helm; omitted if unset)
 
 Example:
   $(basename "$0") dev
@@ -108,6 +137,7 @@ if [[ ! -f "$OVERLAY_FILE" ]]; then
 fi
 
 install_argocd "$OVERLAY"
+set_argocd_admin_password_from_env
 apply_argocd_repo_creds
 apply_argocd_repos
 

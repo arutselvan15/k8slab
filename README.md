@@ -14,7 +14,7 @@ Local learning uses **Kind**; **Terraform** can replace Day 0 later without chan
 chmod +x scripts/*.sh infra/kind/*.sh bootstrap/bootstrap.sh bootstrap/argocd/install.sh
 ```
 
-**Private GitHub:** copy and edit [`bootstrap/env/bootstrap.env.example`](bootstrap/env/bootstrap.env.example) → `bootstrap.env` (see [bootstrap/README.md](./bootstrap/README.md)).
+**Local secrets (optional):** copy [`bootstrap/env/bootstrap.env.example`](bootstrap/env/bootstrap.env.example) → `bootstrap.env` (e.g. `GITHUB_PAT`, `ARGOCD_ADMIN_PASSWORD`).
 
 **One command** (dev profile):
 

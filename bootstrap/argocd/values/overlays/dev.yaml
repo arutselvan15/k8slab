@@ -1,4 +1,4 @@
-# Local Kind / dev — HTTP, single replicas (see base.yaml).
+# Local Kind / dev — HTTP only (see base.yaml).
 
 configs:
   params:

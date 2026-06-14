@@ -4,7 +4,7 @@ Helm merges `../base.yaml` with one overlay per install:
 
 | Overlay | Use |
 |---------|-----|
-| `dev.yaml` | Local Kind, learning |
+| `dev.yaml` | Local Kind; insecure server |
 | `stg.yaml` | Pre-production |
 | `prod.yaml` | Production (TLS expected; not insecure) |
 
