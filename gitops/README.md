@@ -33,9 +33,10 @@ kubectl apply
         │
         ├── wave -1   AppProject "core"
         │
-        └── wave 10   Application "ingress-nginx" (project: core)
-                              │
-                              └── Helm → ingress-nginx namespace
+        ├── wave 10   Application "ingress-nginx"
+        ├── wave 20   Application "cert-manager"
+        ├── wave 21   ClusterIssuer selfsigned
+        └── wave 22   Certificate argocd-server-tls → Argo CD ingress (re-bootstrap dev)
 ```
 
 **`gitops/apps/`** holds Helm **values** only (no Application CRs). Child apps reference them via multi-source `$values/gitops/apps/...`.
@@ -47,18 +48,22 @@ kubectl apply
 ```text
 gitops/
 ├── apps/
-│   └── ingress-nginx/
-│       └── values.yaml              # Helm values (Git)
+│   ├── ingress-nginx/
+│   │   └── values.yaml
+│   └── cert-manager/
+│       └── values.yaml
 └── clusters/
     └── dev/
-        ├── core.application.yaml    # SEED — apply once → creates core-apps
-        └── core/                    # SYNCED by core-apps (directory recurse)
+        ├── core.application.yaml
+        └── core/
             ├── core.appproject.yaml
-            └── applications/
-                └── ingress-nginx.application.yaml
+            ├── applications/
+            │   ├── ingress-nginx.application.yaml
+            │   └── cert-manager.application.yaml
+            └── certificates/
+                ├── clusterissuer-selfsigned.yaml
+                └── argocd-server-certificate.yaml
 ```
-
-Later: **`cert-manager.application.yaml`** under `core/applications/`, values under `gitops/apps/cert-manager/`. Other domains (Kubeflow, product apps) can get their own AppProject + seed Application under `clusters/dev/`.
 
 ---
 
@@ -106,14 +111,26 @@ This creates **`core-apps`** only. Do **not** `kubectl apply` files under `core/
 ```bash
 kubectl get appprojects -n argocd
 kubectl get applications -n argocd
-# expect: core-apps (Synced), ingress-nginx (Synced)
+# expect: core-apps, ingress-nginx, cert-manager (Synced)
 kubectl get pods -n ingress-nginx
-kubectl get ingressclass
+kubectl get pods -n cert-manager
+kubectl get clusterissuer selfsigned
+kubectl get certificate -n argocd argocd-server-tls
+kubectl get ingress -n argocd
 ```
 
-Argo CD UI: Applications **`core-apps`** → **`ingress-nginx`**.
+Add **`127.0.0.1 argocd.dev`** to `/etc/hosts`.
 
-Kind dev: **http://localhost:8080** / **https://localhost:8443** (see `infra/kind/*-cluster.yaml`, `apps/ingress-nginx/values.yaml`).
+When **`argocd-server-tls`** is Ready, enable Argo ingress (dev overlay):
+
+```bash
+source scripts/kubeconfig-setup.sh .kube/kind-dev.yaml
+./bootstrap/bootstrap.sh dev
+```
+
+Open **`https://argocd.dev:8443`** (self-signed; browser warning is expected on Kind).
+
+Kind ingress node ports: **http://localhost:8080** / **https://localhost:8443** (see `infra/kind/dev-cluster.yaml`).
 
 ### 5. Migrate old seeds (if any)
 
@@ -124,16 +141,14 @@ kubectl delete application core-root -n argocd --ignore-not-found
 
 ---
 
-## Add another core component (e.g. cert-manager)
+## Add another core component
 
-1. `gitops/apps/cert-manager/values.yaml`
-2. `gitops/clusters/dev/core/applications/cert-manager.application.yaml`  
-   - `spec.project: core`  
-   - `argocd.argoproj.io/sync-wave` after dependencies (e.g. `"20"`)
-3. Update **`core.appproject.yaml`**: `sourceRepos`, `destinations` (e.g. `cert-manager` namespace)
-4. Commit, push — **`core-apps`** sync adds the new Application; no seed re-apply
+1. `gitops/apps/<name>/values.yaml`
+2. `gitops/clusters/dev/core/applications/<name>.application.yaml` (`spec.project: core`, sync-wave after deps)
+3. Update **`core.appproject.yaml`**: `sourceRepos`, `destinations`
+4. Commit, push — **`core-apps`** sync adds the Application
 
-Chart version: set Helm **`targetRevision`** on each platform Application (ingress-nginx: `4.12.1`).
+Example already in repo: **cert-manager** (chart `v1.17.2`) + **selfsigned** issuer + **argocd.dev** certificate.
 
 ---
 

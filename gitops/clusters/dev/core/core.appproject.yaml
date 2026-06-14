@@ -12,6 +12,7 @@ spec:
   sourceRepos:
     - https://github.com/arutselvan15/k8s-platform.git
     - https://kubernetes.github.io/ingress-nginx
+    - https://charts.jetstack.io
   destinations:
     - namespace: argocd
       server: https://kubernetes.default.svc
