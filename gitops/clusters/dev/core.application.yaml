@@ -1,8 +1,8 @@
-# Seed Application for dev core platform — apply once (not self-managed from Git).
+# Seed Application for dev core platform — applied by scripts/gitops-start.sh (Day 2), not bootstrap.
 #
-#   kubectl apply -f gitops/clusters/dev/core.application.yaml
+#   ./scripts/gitops-start.sh dev
 #
-# Creates Application "core-apps", which syncs only AppProject + child Application CRs.
+# Creates Application "core-apps", which syncs gitops/clusters/dev/core/applications/.
 
 apiVersion: argoproj.io/v1alpha1
 kind: Application

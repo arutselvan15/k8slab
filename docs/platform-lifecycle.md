@@ -16,7 +16,7 @@ Day 2  gitops/          Everything else from Git
 |-------|-------------------|-------------------|
 | **Day 0** | Do we have a cluster? | `infra/terraform/` (placeholder), `infra/kind/` (local) |
 | **Day 1** | Can we manage the cluster via Git? | `bootstrap/bootstrap.sh` → `bootstrap/argocd/install.sh` |
-| **Day 2** | What runs on the cluster? | `gitops/` (App of Apps + platform apps) |
+| **Day 2** | What runs on the cluster? | `gitops/` + [`scripts/gitops-start.sh`](../scripts/gitops-start.sh) |
 
 ## What does not belong where
 
@@ -37,25 +37,28 @@ Bootstrap pins and secrets: `bootstrap/env/defaults.env` + gitignored `bootstrap
 
 ## Local workflow (macOS)
 
-Kind one-shot (Day 0 + kubeconfig + Day 1 + Day 2 seed when present):
+Kind — Day 0 + Day 1 only:
 
 ```bash
 ./scripts/kind-up.sh dev
 ```
 
-`kind-up.sh` applies `gitops/clusters/<profile>/core.application.yaml` if it exists.
+Day 2 (after push to Git):
 
-Manual (same order):
+```bash
+source scripts/kubeconfig-setup.sh .kube/kind-dev.yaml
+./scripts/gitops-start.sh dev
+```
+
+Manual (full order):
 
 ```bash
 ./scripts/require-tools.sh kubectl helm envsubst
 ./infra/kind/setup.sh dev
 source scripts/kubeconfig-setup.sh .kube/kind-dev.yaml
 ./bootstrap/bootstrap.sh dev
-# Day 2: push gitops/, apply seed, wait for core-certificates + Ready cert, then:
-kubectl apply -f gitops/clusters/dev/core.application.yaml
-# after argocd-server-tls Ready:
-./bootstrap/bootstrap.sh dev
+git push   # gitops on GitHub
+./scripts/gitops-start.sh dev
 ```
 
 **Dev UI:** `127.0.0.1 argocd.dev` in `/etc/hosts` → **https://argocd.dev:8443** (Kind node port 8443). See [bootstrap/README.md](../bootstrap/README.md) and [gitops/README.md](../gitops/README.md).
@@ -75,6 +78,7 @@ Day 0 backend differs; **kubeconfig setup + bootstrap stay the same**.
 2. kubeconfig path (e.g. .kube/<profile>.yaml)
 3. source scripts/kubeconfig-setup.sh <that-path>
 4. ./bootstrap/bootstrap.sh <overlay>
+5. ./scripts/gitops-start.sh <profile>   # after gitops push
 ```
 
 Shared scripts: `kubeconfig-setup.sh`, `require-tools.sh`, `bootstrap/`.

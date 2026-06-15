@@ -11,7 +11,7 @@ Full reference for this repo: concepts below, then step-by-step **Deploy dev cor
 | Kind | Example in this repo | Purpose |
 |------|----------------------|---------|
 | **AppProject** | `applications/core.appproject.yaml` → AppProject **`core`** | **Policy** for platform apps. Synced by **`core-apps`** (wave `-1`). |
-| **Application (App of Apps)** | `core.application.yaml` → **`core-apps`** | Syncs **`gitops/clusters/dev/core/applications/`** only — AppProject + child Application CRs. |
+| **Application (App of Apps)** | `core.application.yaml` → **`core-apps`** | Syncs **`core/applications/`**. Started by **`./scripts/gitops-start.sh <profile>`** (Day 2 — not bootstrap). |
 | **Application (platform app)** | `ingress-nginx.application.yaml` | Helm chart + values → target namespace. |
 | **Application (platform TLS)** | `core-certificates.application.yaml` | cert-manager CRs from **`core/certificates/`** (separate Git path, project **`core`**). |
 
@@ -24,8 +24,7 @@ Full reference for this repo: concepts below, then step-by-step **Deploy dev cor
 ```text
 You (once)                Argo CD                         Cluster
 ─────────                 ───────                         ───────
-kubectl apply
-  core.application.yaml
+./scripts/gitops-start.sh dev
         │
         ▼
                     Application "core-apps"
@@ -96,13 +95,14 @@ git commit -m "Day 2: core platform gitops"
 git push
 ```
 
-### 3. Apply the seed
-
-Re-apply when **`core.application.yaml`** changes (e.g. `core-apps` source path):
+### 3. Start GitOps (Day 2)
 
 ```bash
-kubectl apply -f gitops/clusters/dev/core.application.yaml
+source scripts/kubeconfig-setup.sh .kube/kind-dev.yaml
+./scripts/gitops-start.sh dev
 ```
+
+Equivalent: `kubectl apply -f gitops/clusters/dev/core.application.yaml`. Safe to re-run.
 
 Do **not** hand-apply files under `core/applications/` or `core/certificates/`.
 
@@ -159,6 +159,6 @@ Do not add cert YAML under **`applications/`**. Use **`core-certificates`** → 
 |--------|----------------|
 | Cluster (Day 0) | Kind / Terraform |
 | Argo CD (Day 1) | `bootstrap.sh` → `argocd/install.sh` |
-| Seed **`core-apps`** | `kubectl apply -f core.application.yaml` |
+| Seed **`core-apps`** | [`../scripts/gitops-start.sh`](../scripts/gitops-start.sh) `<profile>` |
 
 See also: [`../docs/platform-lifecycle.md`](../docs/platform-lifecycle.md), [Day 1 bootstrap](../bootstrap/README.md).

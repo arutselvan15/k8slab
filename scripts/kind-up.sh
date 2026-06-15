@@ -8,7 +8,7 @@ usage() {
   cat <<EOF
 Usage: $(basename "$0") <cluster-name>
 
-Day 0 (Kind) + kubeconfig + Day 1 (Argo CD) + Day 2 seed (core-apps) when present.
+Day 0 (Kind) + kubeconfig + Day 1 (Argo CD only). Day 2: ./scripts/gitops-start.sh <profile>
 Safe to re-run.
 
 Profiles: dev, stg, prod
@@ -37,16 +37,10 @@ KUBECONFIG_FILE="${REPO_ROOT}/.kube/kind-${CLUSTER}.yaml"
 # shellcheck source=scripts/kubeconfig-setup.sh
 source "$REPO_ROOT/scripts/kubeconfig-setup.sh" "$KUBECONFIG_FILE"
 
-echo "==> Day 1: Bootstrap the cluster"
+echo "==> Day 1: Bootstrap (Argo CD)"
 "$REPO_ROOT/bootstrap/bootstrap.sh" "$CLUSTER"
 
-CORE_APP="${REPO_ROOT}/gitops/clusters/${CLUSTER}/core.application.yaml"
-if [[ -f "$CORE_APP" ]]; then
-  echo "==> Day 2: Apply GitOps (core-apps)"
-  kubectl apply -f "$CORE_APP"
-else
-  echo "==> Day 2: skip (no ${CORE_APP})" >&2
-fi
-
 echo ""
-echo "Platform up for '$CLUSTER'. See gitops/README.md (push Git if Applications stay OutOfSync)."
+echo "Cluster ready for '$CLUSTER'."
+echo "  Day 2: push gitops/, then ./scripts/gitops-start.sh $CLUSTER"
+echo "  See gitops/README.md"

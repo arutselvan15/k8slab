@@ -14,6 +14,7 @@ bootstrap/bootstrap.sh [overlay]
                   ├── Helm: argo-cd chart (pin in defaults.env)
                   ├── apply repo-creds.*.yaml  (envsubst if ${VAR} present)
                   └── apply repo.*.yaml
+                  (GitOps seed: scripts/gitops-start.sh — separate from Day 1)
 ```
 
 - **`bootstrap.sh`** — thin wrapper; does **not** load env (overlay optional, forwarded to `install.sh`).
@@ -91,7 +92,7 @@ User **`admin`**. Optional **`ARGOCD_ADMIN_PASSWORD`** in `bootstrap.env` (patch
 
 `kubectl get secret argocd-initial-admin-secret -n argocd -o jsonpath='{.data.password}' | base64 --decode; echo`
 
-[`../gitops/README.md`](../gitops/README.md) — push Git, apply or refresh `core.application.yaml`, verify **`core-certificates`**.
+[`../gitops/README.md`](../gitops/README.md) — push Git, **`./scripts/gitops-start.sh <profile>`**, verify **`core-certificates`**.
 
 ## What stays in bootstrap (not GitOps)
 
