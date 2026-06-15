@@ -50,3 +50,4 @@ Details: [infra/README.md](./infra/README.md) · [bootstrap/README.md](./bootstr
 | Day 1 — Argo CD, env, repos | [bootstrap/README.md](./bootstrap/README.md) |
 | Day 2 — GitOps (Apps-of-Apps) | [gitops/README.md](./gitops/README.md) |
 | Phases and manual steps | [docs/platform-lifecycle.md](./docs/platform-lifecycle.md) |
+| Learning path (concepts + order) | [knowledge/README.md](./knowledge/README.md) |
